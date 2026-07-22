@@ -105,6 +105,9 @@
     }
     a { color: #cc4b2d; word-break: break-all; }
     .small { font-size: 13px; color: #6c635b; }
+    .auth-box {
+      max-width: 520px;
+    }
     @media (max-width: 780px) {
       .grid, .row-grid { grid-template-columns: 1fr; }
     }
@@ -118,13 +121,21 @@
       <p class="small">注意：如果你的 Google API 專案未通過 YouTube 稽核，影片可能會被強制成私人。</p>
     </div>
 
-    <div class="card">
+    <div class="card auth-box">
       <h2>1. 授權設定</h2>
+      <label>
+        Google OAuth Client ID
+        <input id="clientId" type="text" placeholder="貼上你的 Web OAuth Client ID">
+      </label>
+      <button id="authBtn" class="primary">連接 Google / YouTube</button>
+      <button id="revokeBtn" class="secondary">取消授權</button>
+      <div id="authStatus" class="status">尚未授權</div>
+    </div>
+
+    <div class="card">
+      <h2>2. 選影片</h2>
+
       <div class="grid">
-        <label>
-          Google OAuth Client ID
-          <input id="clientId" type="text" placeholder="貼上你的 Web OAuth Client ID">
-        </label>
         <label>
           預設瀏覽權限
           <select id="defaultPrivacy">
@@ -133,30 +144,25 @@
             <option value="private">私人</option>
           </select>
         </label>
-      </div>
 
-      <label>
-        預設標題
-        <input id="defaultTitle" type="text" placeholder="可留空，留空時仍用檔名">
-      </label>
+        <label>
+          預設標題
+          <input id="defaultTitle" type="text" placeholder="可留空，留空時仍用檔名">
+        </label>
+      </div>
 
       <label>
         預設說明
         <textarea id="defaultDescription" placeholder="可留空"></textarea>
       </label>
 
-      <button id="authBtn" class="primary">連接 Google / YouTube</button>
-      <button id="revokeBtn" class="secondary">取消授權</button>
-      <div id="authStatus" class="status">尚未授權</div>
-    </div>
-
-    <div class="card">
-      <h2>2. 選影片</h2>
       <input id="videoInput" type="file" accept="video/*" multiple>
+
       <div style="margin-top:12px;">
         <button id="applyDefaultsBtn" class="secondary">套用預設到全部</button>
         <button id="clearBtn" class="secondary">清空片單</button>
       </div>
+
       <div id="queueStatus" class="status">尚未加入影片</div>
       <div id="queue"></div>
     </div>
@@ -183,7 +189,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "yt_uploader_settings_v2";
+    const STORAGE_KEY = "yt_uploader_settings_v3";
     const SCOPE = "https://www.googleapis.com/auth/youtube.upload";
 
     const state = {
@@ -558,7 +564,7 @@
 
       const text = ["影片名稱\t影片連結", ...rows].join("\n");
       await navigator.clipboard.writeText(text);
-      setStatus(el.uploadStatus, "已複製影片名稱 + 連結", "ok");
+      setStatus(el.uploadStatus, "已複製影片名稱 + 連結，可直接貼到 Excel A、B 欄", "ok");
     }
 
     el.videoInput.addEventListener("change", e => {
