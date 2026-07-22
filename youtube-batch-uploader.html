@@ -134,10 +134,17 @@
           </select>
         </label>
       </div>
+
+      <label>
+        預設標題
+        <input id="defaultTitle" type="text" placeholder="可留空，留空時仍用檔名">
+      </label>
+
       <label>
         預設說明
         <textarea id="defaultDescription" placeholder="可留空"></textarea>
       </label>
+
       <button id="authBtn" class="primary">連接 Google / YouTube</button>
       <button id="revokeBtn" class="secondary">取消授權</button>
       <div id="authStatus" class="status">尚未授權</div>
@@ -157,7 +164,7 @@
     <div class="card">
       <h2>3. 上傳與整理</h2>
       <button id="uploadBtn" class="primary">開始批次上傳</button>
-      <button id="copyBtn" class="secondary">複製 名稱 + 連結</button>
+      <button id="copyBtn" class="secondary">複製影片名稱 + 連結</button>
       <div id="uploadStatus" class="status">等待中</div>
 
       <table>
@@ -176,7 +183,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "yt_uploader_settings_v1";
+    const STORAGE_KEY = "yt_uploader_settings_v2";
     const SCOPE = "https://www.googleapis.com/auth/youtube.upload";
 
     const state = {
@@ -189,6 +196,7 @@
     const el = {
       clientId: document.getElementById("clientId"),
       defaultPrivacy: document.getElementById("defaultPrivacy"),
+      defaultTitle: document.getElementById("defaultTitle"),
       defaultDescription: document.getElementById("defaultDescription"),
       authBtn: document.getElementById("authBtn"),
       revokeBtn: document.getElementById("revokeBtn"),
@@ -207,6 +215,7 @@
     function saveSettings() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         clientId: el.clientId.value.trim(),
+        defaultTitle: el.defaultTitle.value.trim(),
         defaultPrivacy: el.defaultPrivacy.value,
         defaultDescription: el.defaultDescription.value
       }));
@@ -218,6 +227,7 @@
         if (!raw) return;
         const s = JSON.parse(raw);
         el.clientId.value = s.clientId || "";
+        el.defaultTitle.value = s.defaultTitle || "";
         el.defaultPrivacy.value = s.defaultPrivacy || "unlisted";
         el.defaultDescription.value = s.defaultDescription || "";
       } catch {}
@@ -233,9 +243,12 @@
     }
 
     function formatBytes(bytes) {
-      const u = ["B","KB","MB","GB"];
+      const u = ["B", "KB", "MB", "GB"];
       let i = 0, n = bytes;
-      while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+      while (n >= 1024 && i < u.length - 1) {
+        n /= 1024;
+        i++;
+      }
       return `${n.toFixed(i === 0 ? 0 : 1)} ${u[i]}`;
     }
 
@@ -248,10 +261,11 @@
     }
 
     function defaultItem(file) {
+      const presetTitle = el.defaultTitle.value.trim();
       return {
         id: crypto.randomUUID(),
         file,
-        title: stripExt(file.name),
+        title: presetTitle || stripExt(file.name),
         description: el.defaultDescription.value.trim(),
         privacyStatus: el.defaultPrivacy.value,
         progress: 0,
@@ -314,6 +328,7 @@
         el.resultsBody.innerHTML = `<tr><td colspan="3" class="small">還沒有結果</td></tr>`;
         return;
       }
+
       el.resultsBody.innerHTML = state.results.map(r => `
         <tr>
           <td>${escapeHtml(r.title)}</td>
@@ -396,6 +411,7 @@
           Authorization: `Bearer ${state.accessToken}`
         }
       });
+
       if (res.status === 401 && retry) {
         await refreshToken();
         return authedFetch(url, options, false);
@@ -523,24 +539,28 @@
         renderResults();
       }
 
-      setStatus(el.uploadStatus, `批次上傳完成。成功 ${success} 支，失敗 ${state.queue.length - success} 支。`, success === state.queue.length ? "ok" : "warn");
+      setStatus(
+        el.uploadStatus,
+        `批次上傳完成。成功 ${success} 支，失敗 ${state.queue.length - success} 支。`,
+        success === state.queue.length ? "ok" : "warn"
+      );
     }
 
     async function copyResults() {
-      const text = state.results
+      const rows = state.results
         .filter(x => x.link)
-        .map(x => `${x.title}\t${x.link}`)
-        .join("\n");
-    
-      if (!text) {
+        .map(x => `${x.title}\t${x.link}`);
+
+      if (!rows.length) {
         setStatus(el.uploadStatus, "還沒有可複製的結果", "warn");
         return;
       }
-    
+
+      const text = ["影片名稱\t影片連結", ...rows].join("\n");
       await navigator.clipboard.writeText(text);
-      setStatus(el.uploadStatus, "已複製影片名稱 + 連結，可直接貼到 Excel A、B 欄", "ok");
+      setStatus(el.uploadStatus, "已複製影片名稱 + 連結", "ok");
     }
-    
+
     el.videoInput.addEventListener("change", e => {
       const files = [...e.target.files];
       if (!files.length) return;
@@ -550,7 +570,9 @@
     });
 
     el.applyDefaultsBtn.addEventListener("click", () => {
+      const presetTitle = el.defaultTitle.value.trim();
       for (const item of state.queue) {
+        item.title = presetTitle || stripExt(item.file.name);
         item.privacyStatus = el.defaultPrivacy.value;
         item.description = el.defaultDescription.value.trim();
       }
@@ -568,6 +590,7 @@
     el.copyBtn.addEventListener("click", copyResults);
 
     el.clientId.addEventListener("change", saveSettings);
+    el.defaultTitle.addEventListener("change", saveSettings);
     el.defaultPrivacy.addEventListener("change", saveSettings);
     el.defaultDescription.addEventListener("change", saveSettings);
 
