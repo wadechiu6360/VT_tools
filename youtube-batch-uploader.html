@@ -180,7 +180,12 @@
       <h2>1. 授權設定</h2>
       <label>
         Google OAuth Client ID
-        <input id="clientId" type="text" placeholder="貼上你的 Web OAuth Client ID">
+        <input
+          id="clientId"
+          type="text"
+          value="419288382322-u804ljbj6jnt1530q5khrmo4s0mnbgbv.apps.googleusercontent.com"
+          placeholder="貼上你的 Web OAuth Client ID"
+        >
       </label>
       <button id="authBtn" class="primary">連接 Google / YouTube</button>
       <button id="revokeBtn" class="secondary">取消授權</button>
@@ -296,11 +301,13 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const s = JSON.parse(raw);
-        el.clientId.value = s.clientId || "";
+        el.clientId.value = s.clientId || "419288382322-u804ljbj6jnt1530q5khrmo4s0mnbgbv.apps.googleusercontent.com";
         el.defaultTitle.value = s.defaultTitle || "";
         el.defaultPrivacy.value = s.defaultPrivacy || "unlisted";
         el.defaultDescription.value = s.defaultDescription || "";
-      } catch {}
+      } catch {
+        el.clientId.value = "419288382322-u804ljbj6jnt1530q5khrmo4s0mnbgbv.apps.googleusercontent.com";
+      }
     }
 
     function setStatus(node, text, cls = "") {
