@@ -258,7 +258,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "yt_uploader_settings_v8";
+    const STORAGE_KEY = "yt_uploader_settings_v9";
     const SCOPE = "https://www.googleapis.com/auth/youtube.upload";
 
     const state = {
@@ -387,7 +387,7 @@
                 影片說明
                 <textarea data-id="${item.id}" data-key="description">${escapeHtml(item.description)}</textarea>
               </label>
-              <div class="meta">${escapeHtml(item.file.name)} · ${formatBytes(item.file.size)}</div>
+              <div class="meta">${escapeHtml(stripExt(item.file.name))} · ${formatBytes(item.file.size)}</div>
             </div>
             <div>
               <label>
@@ -617,7 +617,7 @@
 
         state.results.push({
           title: item.title,
-          originalFileName: item.file.name,
+          originalFileName: stripExt(item.file.name),
           status: item.status,
           link: item.link,
           videoId: item.videoId
