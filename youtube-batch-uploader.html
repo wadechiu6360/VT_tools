@@ -238,7 +238,7 @@
     <div class="card">
       <h2>3. 上傳與整理</h2>
       <button id="uploadBtn" class="primary">開始批次上傳</button>
-      <button id="copyBtn" class="secondary">複製所有影片連結</button>
+      <button id="copyBtn" class="secondary">複製影片名稱+原始檔案名稱+連結</button>
       <div id="uploadStatus" class="status">等待中</div>
 
       <table>
@@ -258,7 +258,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "yt_uploader_settings_v7";
+    const STORAGE_KEY = "yt_uploader_settings_v8";
     const SCOPE = "https://www.googleapis.com/auth/youtube.upload";
 
     const state = {
@@ -633,7 +633,7 @@
     async function copyResults() {
       const rows = state.results
         .filter(x => x.link)
-        .map(x => x.link);
+        .map(x => `${x.title}\t${x.originalFileName || ""}\t${x.link}`);
 
       if (!rows.length) {
         setStatus(el.uploadStatus, "還沒有可複製的結果");
@@ -642,7 +642,7 @@
 
       const text = rows.join("\n");
       await navigator.clipboard.writeText(text);
-      setStatus(el.uploadStatus, "已複製所有影片連結");
+      setStatus(el.uploadStatus, "已複製影片名稱、原始檔案名稱、連結");
     }
 
     el.videoInput.addEventListener("change", e => {
