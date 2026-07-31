@@ -238,26 +238,27 @@
     <div class="card">
       <h2>3. 上傳與整理</h2>
       <button id="uploadBtn" class="primary">開始批次上傳</button>
-      <button id="copyBtn" class="secondary">複製影片名稱 + 連結</button>
+      <button id="copyBtn" class="secondary">複製影片名稱+原始檔案名稱+連結</button>
       <div id="uploadStatus" class="status">等待中</div>
 
       <table>
         <thead>
           <tr>
             <th>影片名稱</th>
+            <th>原始檔案名稱</th>
             <th>狀態</th>
             <th>連結</th>
           </tr>
         </thead>
         <tbody id="resultsBody">
-          <tr><td colspan="3" class="small">還沒有結果</td></tr>
+          <tr><td colspan="4" class="small">還沒有結果</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <script>
-    const STORAGE_KEY = "yt_uploader_settings_v5";
+    const STORAGE_KEY = "yt_uploader_settings_v6";
     const SCOPE = "https://www.googleapis.com/auth/youtube.upload";
 
     const state = {
@@ -410,13 +411,14 @@
 
     function renderResults() {
       if (!state.results.length) {
-        el.resultsBody.innerHTML = `<tr><td colspan="3" class="small">還沒有結果</td></tr>`;
+        el.resultsBody.innerHTML = `<tr><td colspan="4" class="small">還沒有結果</td></tr>`;
         return;
       }
 
       el.resultsBody.innerHTML = state.results.map(r => `
         <tr>
           <td>${escapeHtml(r.title)}</td>
+          <td>${escapeHtml(r.originalFileName || "")}</td>
           <td>${escapeHtml(r.status)}</td>
           <td>${r.link ? `<a href="${escapeHtml(r.link)}" target="_blank">${escapeHtml(r.link)}</a>` : "-"}</td>
         </tr>
@@ -615,6 +617,7 @@
 
         state.results.push({
           title: item.title,
+          originalFileName: item.file.name,
           status: item.status,
           link: item.link,
           videoId: item.videoId
@@ -630,16 +633,16 @@
     async function copyResults() {
       const rows = state.results
         .filter(x => x.link)
-        .map(x => `${x.title}\t${x.link}`);
+        .map(x => `${x.title}\t${x.originalFileName || ""}\t${x.link}`);
 
       if (!rows.length) {
         setStatus(el.uploadStatus, "還沒有可複製的結果");
         return;
       }
 
-      const text = ["影片名稱\t影片連結", ...rows].join("\n");
+      const text = ["影片名稱\t原始檔案名稱\t連結", ...rows].join("\n");
       await navigator.clipboard.writeText(text);
-      setStatus(el.uploadStatus, "已複製影片名稱 + 連結，可直接貼到 Excel A、B 欄");
+      setStatus(el.uploadStatus, "已複製影片名稱+原始檔案名稱+連結，可直接貼到 Excel");
     }
 
     el.videoInput.addEventListener("change", e => {
