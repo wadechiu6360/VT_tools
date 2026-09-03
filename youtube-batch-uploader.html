@@ -10,18 +10,18 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #14211c;
-      --muted: #637068;
-      --paper: #fffdf7;
+      --ink: #351813;
+      --muted: #7b5b55;
+      --paper: #fff8f6;
       --surface: rgba(255, 255, 255, .86);
-      --line: #d9dfd9;
-      --green: #176b4d;
-      --green-dark: #0e5039;
-      --green-soft: #e2f2e9;
-      --yellow: #f2b84b;
-      --red: #c94b40;
-      --red-soft: #fae8e5;
-      --shadow: 0 22px 70px rgba(36, 53, 44, .12);
+      --line: #fcd4cc;
+      --green: #ee4d2d;
+      --green-dark: #d3422a;
+      --green-soft: #ffe8e1;
+      --yellow: #f27961;
+      --red: #d3422a;
+      --red-soft: #fcd4cc;
+      --shadow: 0 22px 70px rgba(113, 91, 66, .16);
     }
 
     * { box-sizing: border-box; }
@@ -31,9 +31,10 @@
       min-width: 320px;
       color: var(--ink);
       background:
-        radial-gradient(circle at 8% 5%, rgba(242, 184, 75, .20), transparent 28rem),
-        radial-gradient(circle at 95% 24%, rgba(23, 107, 77, .14), transparent 32rem),
-        linear-gradient(145deg, #f7f3e7 0%, #eff7f0 52%, #f8f4e9 100%);
+        radial-gradient(circle at 8% 5%, rgba(255, 232, 225, .95), transparent 30rem),
+        radial-gradient(circle at 92% 22%, rgba(255, 250, 243, .92), transparent 36rem),
+        linear-gradient(140deg, #ffe8e1 0%, #fffaf3 52%, #ffe8e1 100%);
+      background-attachment: fixed;
       font-family: "Noto Sans TC", sans-serif;
       min-height: 100vh;
     }
@@ -82,7 +83,7 @@
     .panel {
       margin-top: 20px;
       padding: 28px;
-      border: 1px solid rgba(217, 223, 217, .9);
+      border: 1px solid rgba(252, 212, 204, .95);
       border-radius: 24px;
       background: var(--surface);
       box-shadow: var(--shadow);
@@ -111,7 +112,7 @@
       margin-right: 10px;
       border-radius: 50%;
       color: #fff;
-      background: var(--ink);
+      background: var(--green-dark);
       font-size: 15px;
       vertical-align: 2px;
     }
@@ -149,12 +150,12 @@
 
     .oauth-card:hover {
       transform: translateY(-2px);
-      border-color: #a9bdb1;
+      border-color: #f69d8c;
     }
 
     .oauth-card.selected {
       border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(23, 107, 77, .12);
+      box-shadow: 0 0 0 3px rgba(238, 77, 45, .14);
       background: #fff;
     }
 
@@ -174,7 +175,7 @@
       width: 86px;
       height: 86px;
       border-radius: 50%;
-      background: conic-gradient(var(--green) var(--used-percent), #e7ebe6 0);
+      background: conic-gradient(var(--green) var(--used-percent), #ffe8e1 0);
     }
 
     .quota-ring::after {
@@ -262,7 +263,7 @@
       height: 8px;
       margin-right: 9px;
       border-radius: 50%;
-      background: #aeb8b2;
+      background: #f9c1b6;
     }
 
     .status.success { color: var(--green-dark); }
@@ -291,8 +292,8 @@
     .btn:disabled { cursor: not-allowed; opacity: .46; }
     .btn-primary { color: #fff; border-color: var(--green); background: var(--green); }
     .btn-primary:hover:not(:disabled) { background: var(--green-dark); }
-    .btn-dark { color: #fff; border-color: var(--ink); background: var(--ink); }
-    .btn-danger { color: var(--red); border-color: #e9bbb6; background: var(--red-soft); }
+    .btn-dark { color: #fff; border-color: var(--green-dark); background: var(--green-dark); }
+    .btn-danger { color: var(--red); border-color: #f69d8c; background: var(--red-soft); }
 
     .drop-zone {
       position: relative;
@@ -300,11 +301,11 @@
       place-items: center;
       min-height: 230px;
       padding: 36px;
-      border: 2px dashed #9db5a7;
+      border: 2px dashed #f27961;
       border-radius: 22px;
       background:
         linear-gradient(rgba(255,255,255,.76), rgba(255,255,255,.76)),
-        repeating-linear-gradient(45deg, transparent 0 14px, rgba(23,107,77,.06) 14px 15px);
+        repeating-linear-gradient(45deg, transparent 0 14px, rgba(238,77,45,.07) 14px 15px);
       text-align: center;
       transition: border-color .2s ease, background .2s ease, transform .2s ease;
       cursor: pointer;
@@ -367,7 +368,7 @@
 
     .input, .select { min-height: 46px; padding: 10px 13px; }
     .textarea { min-height: 104px; padding: 12px 13px; resize: vertical; line-height: 1.6; }
-    .input:focus, .select:focus, .textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(23,107,77,.12); }
+    .input:focus, .select:focus, .textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(238,77,45,.14); }
 
     .apply-row {
       display: flex;
@@ -390,7 +391,7 @@
       padding: 24px;
       border-radius: 14px;
       color: var(--muted);
-      background: rgba(231,235,230,.56);
+      background: rgba(255,232,225,.72);
       text-align: center;
       font-size: 13px;
     }
@@ -422,7 +423,7 @@
       width: 44px;
       height: 44px;
       padding: 0;
-      border: 1px solid #e9bbb6;
+      border: 1px solid #f69d8c;
       border-radius: 12px;
       color: var(--red);
       background: var(--red-soft);
@@ -456,14 +457,14 @@
       height: 9px;
       overflow: hidden;
       border-radius: 999px;
-      background: #e5eae6;
+      background: #ffe8e1;
     }
 
     .progress-bar {
       width: 0;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--green), #55a377);
+      background: linear-gradient(90deg, var(--green-dark), #f27961);
       transition: width .25s ease;
     }
 
@@ -489,7 +490,7 @@
     .pill { display: inline-block; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
     .pill.success { color: var(--green-dark); background: var(--green-soft); }
     .pill.error { color: var(--red); background: var(--red-soft); }
-    .pill.uploading { color: #77540d; background: #fff1c9; }
+    .pill.uploading { color: #d3422a; background: #ffe8e1; }
 
     .fine-print {
       margin: 14px 0 0;
@@ -526,8 +527,8 @@
   <main class="page">
     <header class="hero">
       <div>
-        <p class="eyebrow">YouTube Studio Assistant - 一次選好，一次上傳</p>
-        <h1>YouTube 批次上傳工具</h1>
+        <p class="eyebrow">YouTube 批次上傳工具：一次選好，一次上傳</p>
+        <h1>YouTube Studio Assistant</h1>
       </div>
       <p class="hero-note">批次設定影片資訊、切換 API 專案，完成後直接複製影片名稱、原始檔案名稱與連結到 Excel。</p>
     </header>
