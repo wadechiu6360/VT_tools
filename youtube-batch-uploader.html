@@ -1239,10 +1239,10 @@
         throw new Error("尚未設定共用配額網址");
       }
 
-      // 修改計數維持單一路徑，避免網路重試造成重複扣除。
-      if (params.action) return requestSharedQuotaJsonp(params);
-
       const url = new URL(SHARED_QUOTA_ENDPOINT);
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.set(key, String(value));
+      });
       url.searchParams.set("_", String(Date.now()));
       try {
         const response = await fetch(url, { cache: "no-store", redirect: "follow" });
@@ -1250,7 +1250,9 @@
         const payload = await response.json();
         if (!payload?.ok) throw new Error(payload?.error || "同步服務發生錯誤");
         return payload;
-      } catch {
+      } catch (error) {
+        // 寫入不可自動重送，避免伺服器已扣除但回應中斷時重複計算。
+        if (params.action) throw new Error(`共用寫入失敗：${error.message}`);
         return requestSharedQuotaJsonp();
       }
     }
