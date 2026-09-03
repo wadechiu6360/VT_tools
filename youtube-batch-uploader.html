@@ -888,6 +888,7 @@
           <div class="status" id="authStatus" aria-live="polite">尚未授權</div>
           <div class="connected-channel" id="channelStatus" aria-live="polite">目前連結的 YouTube 頻道：尚未連結</div>
           <p class="fine-print" id="quotaResetText"></p>
+          <p class="fine-print" id="quotaSyncStatus" aria-live="polite"></p>
         </div>
         <div class="button-row">
           <button class="btn" id="resetQuotaBtn" type="button">校正今日紀錄</button>
@@ -1001,6 +1002,8 @@
     const DEFAULT_DAILY_INSERT_LIMIT = 100;
     const SETTINGS_KEY = "yt_batch_uploader_settings_v10";
     const QUOTA_KEY = "yt_batch_uploader_insert_usage_v2";
+    // 部署 youtube-quota-sync.gs 後，把 Apps Script 的 /exec 網址貼在這裡。
+    const SHARED_QUOTA_ENDPOINT = "https://script.google.com/macros/s/AKfycbzJg44LaLK4UZgNn6JoGqZzjEter8X0zW9rGg_e4PMsAl2fABcZOWHceDUpFe7Pgway_A/exec";
     const SCOPE = "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly";
 
     const state = {
@@ -1013,7 +1016,9 @@
       results: [],
       uploading: false,
       generatingThumbnails: false,
-      draggedItemId: ""
+      draggedItemId: "",
+      quotaSyncState: SHARED_QUOTA_ENDPOINT ? "syncing" : "local",
+      quotaSyncRevision: 0
     };
 
     const el = {
@@ -1021,6 +1026,7 @@
       authStatus: document.getElementById("authStatus"),
       channelStatus: document.getElementById("channelStatus"),
       quotaResetText: document.getElementById("quotaResetText"),
+      quotaSyncStatus: document.getElementById("quotaSyncStatus"),
       authorizeBtn: document.getElementById("authorizeBtn"),
       resetQuotaBtn: document.getElementById("resetQuotaBtn"),
       dropZone: document.getElementById("dropZone"),
@@ -1105,18 +1111,121 @@
       return Math.max(0, Number(entry.used) || 0);
     }
 
-    function setClientUsage(clientId, used) {
+    function writeLocalClientUsage(clientId, used, shouldRender = true) {
       const store = readQuotaStore();
       store[clientId] = {
         date: getPacificDateKey(),
         used: Math.max(0, Math.round(Number(used) || 0))
       };
       localStorage.setItem(QUOTA_KEY, JSON.stringify(store));
+      if (shouldRender) renderOAuthCards();
+    }
+
+    function applySharedQuotaSnapshot(payload) {
+      if (!payload?.usage || typeof payload.usage !== "object") {
+        throw new Error("共用配額服務回傳格式不正確");
+      }
+      const revision = Math.max(0, Number(payload.revision) || 0);
+      if (revision < state.quotaSyncRevision) return;
+      state.quotaSyncRevision = revision;
+
+      const store = readQuotaStore();
+      const date = payload.date || getPacificDateKey();
+      CLIENTS.forEach(client => {
+        store[client.id] = {
+          date,
+          used: Math.max(0, Math.round(Number(payload.usage[client.id]) || 0))
+        };
+      });
+      localStorage.setItem(QUOTA_KEY, JSON.stringify(store));
       renderOAuthCards();
     }
 
+    function updateQuotaSyncStatus(status, detail = "") {
+      state.quotaSyncState = status;
+      const messages = {
+        local: "剩餘量：本機紀錄（尚未設定跨電腦同步）",
+        syncing: "剩餘量：正在同步共用紀錄…",
+        shared: "剩餘量：已連接共用紀錄，所有電腦會顯示相同數字",
+        error: `剩餘量：共用同步失敗，目前暫用本機紀錄${detail ? `（${detail}）` : ""}`
+      };
+      el.quotaSyncStatus.textContent = messages[status] || messages.local;
+    }
+
+    function requestSharedQuota(params = {}) {
+      if (!SHARED_QUOTA_ENDPOINT) {
+        return Promise.reject(new Error("尚未設定共用配額網址"));
+      }
+
+      return new Promise((resolve, reject) => {
+        const callbackName = `__ytQuotaSync_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement("script");
+        const url = new URL(SHARED_QUOTA_ENDPOINT);
+        const timeout = setTimeout(() => finish(new Error("同步逾時")), 12000);
+        let settled = false;
+
+        function finish(error, payload) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          script.remove();
+          delete window[callbackName];
+          if (error) reject(error);
+          else resolve(payload);
+        }
+
+        window[callbackName] = payload => {
+          if (!payload?.ok) {
+            finish(new Error(payload?.error || "同步服務發生錯誤"));
+            return;
+          }
+          finish(null, payload);
+        };
+        script.onerror = () => finish(new Error("無法連接共用配額服務"));
+        Object.entries({ ...params, callback: callbackName }).forEach(([key, value]) => {
+          url.searchParams.set(key, String(value));
+        });
+        script.src = url.toString();
+        document.head.append(script);
+      });
+    }
+
+    async function syncQuotaFromServer(silent = false) {
+      if (!SHARED_QUOTA_ENDPOINT) {
+        updateQuotaSyncStatus("local");
+        return;
+      }
+
+      if (!silent) updateQuotaSyncStatus("syncing");
+      try {
+        const payload = await requestSharedQuota();
+        updateQuotaSyncStatus("shared");
+        applySharedQuotaSnapshot(payload);
+      } catch (error) {
+        updateQuotaSyncStatus("error", error.message);
+      }
+    }
+
+    function updateSharedQuota(action, clientId, value) {
+      if (!SHARED_QUOTA_ENDPOINT) return;
+      updateQuotaSyncStatus("syncing");
+      requestSharedQuota({ action, clientId, value })
+        .then(payload => {
+          updateQuotaSyncStatus("shared");
+          applySharedQuotaSnapshot(payload);
+        })
+        .catch(error => updateQuotaSyncStatus("error", error.message));
+    }
+
+    function setClientUsage(clientId, used) {
+      const normalized = Math.max(0, Math.round(Number(used) || 0));
+      writeLocalClientUsage(clientId, normalized);
+      updateSharedQuota("set", clientId, normalized);
+    }
+
     function recordInsertAttempt(clientId) {
-      setClientUsage(clientId, getClientUsage(clientId) + 1);
+      writeLocalClientUsage(clientId, getClientUsage(clientId) + 1);
+      updateSharedQuota("increment", clientId, 1);
     }
 
     function renderOAuthCards() {
@@ -1135,7 +1244,7 @@
             </span>
             <span class="quota-main">
               <span class="quota-ring" style="--used-percent:${usedPercent}%" aria-label="預估剩餘 ${remaining} 支">
-                <span class="quota-number">${remaining}<small>預估剩餘</small></span>
+                <span class="quota-number">${remaining}<small>${state.quotaSyncState === "shared" ? "共用預估剩餘" : "本機預估剩餘"}</small></span>
               </span>
               <span class="quota-facts">
                 <span class="quota-fact"><small>今日已使用</small><strong>${used} 支</strong></span>
@@ -1905,8 +2014,18 @@
 
     loadSettings();
     renderOAuthCards();
+    updateQuotaSyncStatus(SHARED_QUOTA_ENDPOINT ? "syncing" : "local");
+    syncQuotaFromServer();
     renderQueue();
     renderResults();
+
+    window.addEventListener("focus", () => syncQuotaFromServer(true));
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") syncQuotaFromServer(true);
+    });
+    if (SHARED_QUOTA_ENDPOINT) {
+      setInterval(() => syncQuotaFromServer(true), 60000);
+    }
   </script>
 </body>
 </html>
