@@ -301,13 +301,24 @@
     }
 
     .auth-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
       margin-top: 18px;
       padding-top: 18px;
       border-top: 1px solid var(--line);
+    }
+
+    .auth-content { min-width: 0; }
+
+    .channel-row {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .channel-row .btn {
+      flex: 0 0 auto;
+      height: 44px;
+      white-space: nowrap;
     }
 
     .status {
@@ -333,8 +344,14 @@
     .status.error::before { background: var(--red); }
 
     .connected-channel {
+      display: flex;
+      flex: 0 1 auto;
+      align-items: center;
+      min-width: 0;
       width: fit-content;
-      margin-top: 8px;
+      max-width: 100%;
+      min-height: 44px;
+      margin: 0;
       padding: 7px 11px;
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -861,6 +878,23 @@
       line-height: 1.65;
     }
 
+    .inline-action {
+      display: inline;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      color: var(--green-dark);
+      background: transparent;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+    }
+
+    .inline-action:hover:not(:disabled) { color: var(--green); }
+    .inline-action:disabled { cursor: not-allowed; opacity: .48; }
+
     @media (max-width: 900px) {
       .hero { grid-template-columns: 1fr; }
       .hero-note { max-width: 620px; }
@@ -878,7 +912,9 @@
       .page { width: min(100% - 20px, 1180px); padding-top: 30px; }
       .panel { padding: 18px; border-radius: 18px; }
       .oauth-grid { grid-template-columns: 1fr; }
-      .section-heading, .auth-bar, .upload-actions, .apply-row { align-items: stretch; flex-direction: column; }
+      .section-heading, .upload-actions, .apply-row { align-items: stretch; flex-direction: column; }
+      .channel-row { gap: 8px; }
+      .channel-row .btn { padding-inline: 12px; }
       .section-copy { text-align: left; }
       .defaults-grid { grid-template-columns: 1fr; }
       .field-wide { grid-column: auto; }
@@ -919,18 +955,17 @@
       <div class="oauth-grid" id="oauthGrid"></div>
 
       <div class="auth-bar">
-        <div>
+        <div class="auth-content">
           <div class="status" id="authStatus" aria-live="polite">尚未授權</div>
-          <div class="connected-channel" id="channelStatus" aria-live="polite">目前連結的 YouTube 頻道：尚未連結</div>
+          <div class="channel-row">
+            <button class="btn btn-primary" id="authorizeBtn" type="button">連接 Google OAuth</button>
+            <div class="connected-channel" id="channelStatus" aria-live="polite">目前連結的 YouTube 頻道：尚未連結</div>
+          </div>
           <p class="fine-print" id="quotaResetText"></p>
           <p class="fine-print" id="quotaSyncStatus" aria-live="polite"></p>
         </div>
-        <div class="button-row">
-          <button class="btn" id="resetQuotaBtn" type="button">校正今日紀錄</button>
-          <button class="btn btn-primary" id="authorizeBtn" type="button">連接 Google OAuth</button>
-        </div>
       </div>
-      <p class="fine-print">這是本工具自共用同步啟用後依上傳請求計算的預估值，不是 Google Cloud 即時官方餘額。啟用前已有用量時，請先按「校正今日紀錄」；若專案曾申請調整，請以 Google Cloud Console 顯示為準。</p>
+      <p class="fine-print">這是本工具自共用同步啟用後依上傳請求計算的預估值，不是 Google Cloud 即時官方餘額。啟用前已有用量時，請先按「<button class="inline-action" id="resetQuotaBtn" type="button">校正今日紀錄</button>」；若專案曾申請調整，請以 Google Cloud Console 顯示為準。</p>
     </section>
 
     <section class="panel" aria-labelledby="files-title">
