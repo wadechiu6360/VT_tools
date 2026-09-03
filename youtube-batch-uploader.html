@@ -1181,7 +1181,7 @@
       const messages = {
         local: "剩餘量：本機紀錄（尚未設定跨電腦同步）",
         syncing: "剩餘量：正在同步共用紀錄…",
-        shared: "剩餘量：已連接共用紀錄，所有電腦會顯示相同數字",
+        shared: "剩餘量：已連接共用紀錄",
         error: `剩餘量：共用同步失敗，目前暫用本機紀錄${detail ? `（${detail}）` : ""}`
       };
       el.quotaSyncStatus.textContent = messages[status] || messages.local;
