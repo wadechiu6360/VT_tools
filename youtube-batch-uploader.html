@@ -466,6 +466,15 @@
     .queue-summary { color: var(--muted); font-size: 13px; }
     .queue-summary strong { color: var(--ink); }
 
+    .sort-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-left: 10px;
+      color: var(--green-dark);
+      font-weight: 600;
+    }
+
     .queue {
       display: grid;
       gap: 12px;
@@ -483,28 +492,171 @@
 
     .video-item {
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 170px 44px;
-      gap: 12px;
+      grid-template-columns: 190px minmax(0, 1fr) 180px 44px;
+      grid-template-areas:
+        "thumbnail filename filename remove"
+        "thumbnail title privacy remove"
+        "thumbnail description description remove";
+      gap: 10px 14px;
       align-items: start;
-      padding: 16px;
+      padding: 14px;
       border: 1px solid var(--line);
-      border-radius: 16px;
-      background: #fff;
+      border-radius: 18px;
+      background: linear-gradient(155deg, #fff 0%, #fffdfb 100%);
+      box-shadow: 0 8px 24px rgba(93, 52, 43, .07);
+      transition: opacity .16s ease, transform .16s ease, box-shadow .16s ease;
+    }
+
+    .video-item.dragging { opacity: .38; transform: scale(.99); }
+    .video-item.drop-before { box-shadow: 0 -4px 0 var(--green), 0 8px 24px rgba(93, 52, 43, .07); }
+    .video-item.drop-after { box-shadow: 0 4px 0 var(--green), 0 8px 24px rgba(93, 52, 43, .07); }
+
+    .video-thumbnail {
+      --thumb-aspect: 16 / 9;
+      --thumb-width: 190px;
+      position: relative;
+      grid-area: thumbnail;
+      display: grid;
+      place-items: center;
+      align-self: center;
+      justify-self: center;
+      width: min(100%, var(--thumb-width));
+      max-width: 100%;
+      aspect-ratio: var(--thumb-aspect);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      background: linear-gradient(145deg, #351813, #6e3026);
+    }
+
+    .video-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .thumbnail-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      padding: 12px;
+      color: #fffaf3;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .thumbnail-placeholder::before {
+      content: "▶";
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      padding-left: 2px;
+      border-radius: 50%;
+      color: var(--green-dark);
+      background: #fffaf3;
+      font-size: 12px;
+    }
+
+    .thumbnail-placeholder.loading::before {
+      content: "";
+      padding: 0;
+      border: 3px solid rgba(255,250,243,.35);
+      border-top-color: #fffaf3;
+      background: transparent;
+      animation: thumbnail-spin .8s linear infinite;
+    }
+
+    @keyframes thumbnail-spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .thumbnail-placeholder.loading::before { animation: none; }
     }
 
     .file-name {
-      grid-column: 1 / -1;
+      grid-area: filename;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      min-height: 36px;
+      padding: 5px 9px;
+      border-radius: 12px;
       color: var(--muted);
+      background: #fffaf3;
       font-size: 12px;
     }
 
-    .file-name strong { color: var(--ink); overflow-wrap: anywhere; }
+    .file-identity, .file-meta {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .file-name strong {
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-index {
+      display: grid;
+      flex: 0 0 auto;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--green);
+      font: 700 12px/1 "IBM Plex Sans", sans-serif;
+    }
+
+    .drag-handle {
+      display: grid;
+      flex: 0 0 auto;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--green-dark);
+      background: #fff;
+      font-size: 15px;
+      line-height: 1;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .drag-handle:active { cursor: grabbing; }
+    .drag-handle:disabled { cursor: not-allowed; opacity: .45; }
+
+    .file-size { white-space: nowrap; }
+
+    .file-status {
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: var(--green-dark);
+      background: var(--green-soft);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .file-status.success { color: #fff; background: var(--green); }
+    .file-status.error { color: var(--red); background: var(--red-soft); }
+
+    .video-item .title-field { grid-area: title; }
+    .video-item .description-field { grid-area: description; }
+    .video-item .privacy-field { grid-area: privacy; }
+    .video-item .field { gap: 5px; }
+    .video-item .textarea { min-height: 64px; }
 
     .remove-btn {
+      grid-area: remove;
       width: 44px;
       height: 44px;
       padding: 0;
@@ -513,7 +665,10 @@
       color: var(--red);
       background: var(--red-soft);
       font-size: 20px;
+      transition: transform .15s ease, background .15s ease;
     }
+
+    .remove-btn:hover:not(:disabled) { transform: translateY(-1px); background: #f9c1b6; }
 
     .upload-actions {
       display: flex;
@@ -589,8 +744,13 @@
       .hero-note { max-width: 620px; }
       .oauth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .oauth-card { min-height: 230px; }
-      .video-item { grid-template-columns: 1fr 1fr 44px; }
-      .video-item .description-field { grid-column: 1 / -1; }
+      .video-item {
+        grid-template-columns: 150px minmax(0, 1fr) 160px 44px;
+        grid-template-areas:
+          "thumbnail filename filename remove"
+          "thumbnail title privacy remove"
+          "thumbnail description description remove";
+      }
     }
 
     @media (max-width: 650px) {
@@ -601,9 +761,17 @@
       .section-copy { text-align: left; }
       .defaults-grid { grid-template-columns: 1fr; }
       .field-wide { grid-column: auto; }
-      .video-item { grid-template-columns: 1fr 44px; }
-      .video-item .title-field, .video-item .description-field, .video-item .privacy-field { grid-column: 1 / -1; }
-      .video-item .remove-btn { grid-column: 2; grid-row: 2; }
+      .video-item {
+        grid-template-columns: minmax(0, 1fr) 44px;
+        grid-template-areas:
+          "filename remove"
+          "thumbnail thumbnail"
+          "title title"
+          "privacy privacy"
+          "description description";
+      }
+      .file-name { align-items: flex-start; flex-direction: column; }
+      .file-meta { flex-wrap: wrap; }
       .button-row .btn { flex: 1 1 180px; }
       .overall-progress { max-width: none; }
     }
@@ -677,7 +845,7 @@
 
       <div class="apply-row">
         <div class="queue-summary" id="queueSummary">尚未選擇影片</div>
-        <button class="btn" id="applyDefaultsBtn" type="button">套用預設到全部</button>
+        <button class="btn btn-primary" id="applyDefaultsBtn" type="button">套用預設到全部</button>
       </div>
       <div class="queue" id="queue"></div>
     </section>
@@ -752,7 +920,9 @@
       channelId: "",
       queue: [],
       results: [],
-      uploading: false
+      uploading: false,
+      generatingThumbnails: false,
+      draggedItemId: ""
     };
 
     const el = {
@@ -781,6 +951,18 @@
 
     function stripExt(name) {
       return name.replace(/\.[^.]+$/, "");
+    }
+
+    function getAspectRatioFromName(name) {
+      const match = name.match(/(?:^|[^0-9])(\d{1,2})\s*[x×]\s*(\d{1,2})(?:[^0-9]|$)/i);
+      if (!match) return 0;
+      const width = Number(match[1]);
+      const height = Number(match[2]);
+      return width > 0 && height > 0 ? width / height : 0;
+    }
+
+    function getThumbnailWidth(aspectRatio) {
+      return Math.min(190, Math.max(1, 150 * aspectRatio));
     }
 
     function escapeHtml(value) {
@@ -1013,6 +1195,134 @@
       }
     }
 
+    function createVideoThumbnail(file) {
+      return new Promise((resolve, reject) => {
+        const video = document.createElement("video");
+        const sourceUrl = URL.createObjectURL(file);
+        let finished = false;
+        let timeoutId;
+
+        const cleanup = () => {
+          clearTimeout(timeoutId);
+          video.removeAttribute("src");
+          video.load();
+          URL.revokeObjectURL(sourceUrl);
+        };
+
+        const fail = message => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          reject(new Error(message));
+        };
+
+        const captureFrame = () => {
+          if (finished || !video.videoWidth || !video.videoHeight) return;
+          finished = true;
+
+          const canvas = document.createElement("canvas");
+          const scale = Math.min(1, 480 / video.videoWidth);
+          canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+          canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+          const aspectRatio = getAspectRatioFromName(file.name) || video.videoWidth / video.videoHeight;
+          const context = canvas.getContext("2d");
+
+          if (!context) {
+            cleanup();
+            reject(new Error("瀏覽器無法建立縮圖畫布"));
+            return;
+          }
+
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            cleanup();
+            if (!blob) {
+              reject(new Error("瀏覽器無法輸出縮圖"));
+              return;
+            }
+            resolve({
+              url: URL.createObjectURL(blob),
+              aspectRatio
+            });
+          }, "image/jpeg", .82);
+        };
+
+        video.preload = "auto";
+        video.muted = true;
+        video.playsInline = true;
+        video.addEventListener("error", () => fail("此影片格式無法在瀏覽器預覽"), { once: true });
+        video.addEventListener("seeked", captureFrame, { once: true });
+        video.addEventListener("loadeddata", () => {
+          if (!Number.isFinite(video.duration) || video.duration <= .12) captureFrame();
+        }, { once: true });
+        video.addEventListener("loadedmetadata", () => {
+          if (Number.isFinite(video.duration) && video.duration > .12) {
+            video.currentTime = Math.min(2, Math.max(.1, video.duration * .1));
+          }
+        }, { once: true });
+
+        timeoutId = setTimeout(() => fail("產生縮圖逾時"), 15000);
+        video.src = sourceUrl;
+        video.load();
+      });
+    }
+
+    function updateThumbnailDisplay(item) {
+      const itemNode = Array.from(el.queue.querySelectorAll(".video-item"))
+        .find(node => node.dataset.id === item.id);
+      const container = itemNode?.querySelector(".video-thumbnail");
+      if (!container) return;
+
+      const aspectRatio = Number.isFinite(item.thumbnailAspect) && item.thumbnailAspect > 0
+        ? item.thumbnailAspect
+        : 16 / 9;
+      container.style.setProperty("--thumb-aspect", String(aspectRatio));
+      container.style.setProperty("--thumb-width", `${getThumbnailWidth(aspectRatio)}px`);
+
+      if (item.thumbnailUrl) {
+        const image = document.createElement("img");
+        image.src = item.thumbnailUrl;
+        image.alt = `${stripExt(item.file.name)} 的影片縮圖`;
+        container.replaceChildren(image);
+        return;
+      }
+
+      const placeholder = document.createElement("span");
+      placeholder.className = `thumbnail-placeholder${item.thumbnailStatus === "loading" ? " loading" : ""}`;
+      placeholder.textContent = item.thumbnailStatus === "error" ? "無法產生縮圖" : "正在產生縮圖";
+      container.replaceChildren(placeholder);
+    }
+
+    async function generatePendingThumbnails() {
+      if (state.generatingThumbnails) return;
+      state.generatingThumbnails = true;
+
+      while (true) {
+        const item = state.queue.find(candidate => candidate.thumbnailStatus === "pending");
+        if (!item) break;
+
+        item.thumbnailStatus = "loading";
+        updateThumbnailDisplay(item);
+
+        try {
+          const thumbnail = await createVideoThumbnail(item.file);
+          if (state.queue.includes(item)) {
+            item.thumbnailUrl = thumbnail.url;
+            item.thumbnailAspect = thumbnail.aspectRatio;
+            item.thumbnailStatus = "ready";
+          } else {
+            URL.revokeObjectURL(thumbnail.url);
+          }
+        } catch {
+          if (state.queue.includes(item)) item.thumbnailStatus = "error";
+        }
+
+        updateThumbnailDisplay(item);
+      }
+
+      state.generatingThumbnails = false;
+    }
+
     function addFiles(fileList) {
       const incoming = Array.from(fileList).filter(file => file.type.startsWith("video/") || /\.(mp4|mov|m4v|avi|wmv|webm|mkv)$/i.test(file.name));
       let added = 0;
@@ -1027,20 +1337,24 @@
           description: el.defaultDescription.value,
           privacy: el.defaultPrivacy.value,
           status: "等待上傳",
-          progress: 0
+          progress: 0,
+          thumbnailUrl: "",
+          thumbnailAspect: getAspectRatioFromName(file.name) || 16 / 9,
+          thumbnailStatus: "pending"
         });
         added += 1;
       });
 
       el.fileInput.value = "";
       renderQueue();
+      generatePendingThumbnails();
       if (!added && incoming.length) setStatus(el.uploadStatus, "這些影片已經在清單中");
     }
 
     function renderQueue() {
       const totalSize = state.queue.reduce((sum, item) => sum + item.file.size, 0);
       el.queueSummary.innerHTML = state.queue.length
-        ? `已選擇 <strong>${state.queue.length}</strong> 支影片，共 <strong>${formatBytes(totalSize)}</strong>`
+        ? `已選擇 <strong>${state.queue.length}</strong> 支影片，共 <strong>${formatBytes(totalSize)}</strong>${state.queue.length > 1 ? '<span class="sort-hint">↕ 拖曳把手可調整上傳順序</span>' : ""}`
         : "尚未選擇影片";
 
       if (!state.queue.length) {
@@ -1048,9 +1362,24 @@
         return;
       }
 
-      el.queue.innerHTML = state.queue.map(item => `
+      el.queue.innerHTML = state.queue.map((item, index) => `
         <article class="video-item" data-id="${escapeHtml(item.id)}">
-          <div class="file-name"><strong>${escapeHtml(stripExt(item.file.name))}</strong><span>${formatBytes(item.file.size)} · ${escapeHtml(item.status)}</span></div>
+          <div class="video-thumbnail" style="--thumb-aspect:${Number.isFinite(item.thumbnailAspect) ? item.thumbnailAspect : 16 / 9};--thumb-width:${getThumbnailWidth(Number.isFinite(item.thumbnailAspect) ? item.thumbnailAspect : 16 / 9)}px">
+            ${item.thumbnailUrl
+              ? `<img src="${escapeHtml(item.thumbnailUrl)}" alt="${escapeHtml(stripExt(item.file.name))} 的影片縮圖">`
+              : `<span class="thumbnail-placeholder${item.thumbnailStatus === "loading" ? " loading" : ""}">${item.thumbnailStatus === "error" ? "無法產生縮圖" : "正在產生縮圖"}</span>`}
+          </div>
+          <div class="file-name">
+            <span class="file-identity">
+              <button class="drag-handle" type="button" draggable="${state.uploading ? "false" : "true"}" aria-label="拖曳調整 ${escapeHtml(stripExt(item.file.name))} 的上傳順序" title="按住拖曳調整順序" ${state.uploading ? "disabled" : ""}>↕</button>
+              <span class="file-index">${index + 1}</span>
+              <strong>${escapeHtml(stripExt(item.file.name))}</strong>
+            </span>
+            <span class="file-meta">
+              <span class="file-size">${formatBytes(item.file.size)}</span>
+              <span class="file-status${item.status === "上傳成功" ? " success" : item.status === "上傳失敗" ? " error" : ""}">${escapeHtml(item.status)}</span>
+            </span>
+          </div>
           <div class="field title-field">
             <label class="field-label">影片標題</label>
             <input class="input item-title" type="text" value="${escapeHtml(item.title)}" ${state.uploading ? "disabled" : ""}>
@@ -1072,14 +1401,86 @@
 
       el.queue.querySelectorAll(".video-item").forEach(node => {
         const item = state.queue.find(candidate => candidate.id === node.dataset.id);
+        const dragHandle = node.querySelector(".drag-handle");
         node.querySelector(".item-title").addEventListener("input", event => item.title = event.target.value);
         node.querySelector(".item-description").addEventListener("input", event => item.description = event.target.value);
         node.querySelector(".item-privacy").addEventListener("change", event => item.privacy = event.target.value);
+
+        dragHandle.addEventListener("dragstart", event => {
+          if (state.uploading) {
+            event.preventDefault();
+            return;
+          }
+          state.draggedItemId = item.id;
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", item.id);
+          event.dataTransfer.setDragImage(node, 24, 24);
+          requestAnimationFrame(() => node.classList.add("dragging"));
+        });
+
+        node.addEventListener("dragover", event => {
+          if (!state.draggedItemId || state.draggedItemId === item.id) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          const bounds = node.getBoundingClientRect();
+          const position = event.clientY > bounds.top + bounds.height / 2 ? "after" : "before";
+          clearDropIndicators();
+          node.classList.add(position === "after" ? "drop-after" : "drop-before");
+          node.dataset.dropPosition = position;
+        });
+
+        node.addEventListener("dragleave", event => {
+          if (!node.contains(event.relatedTarget)) {
+            node.classList.remove("drop-before", "drop-after");
+            delete node.dataset.dropPosition;
+          }
+        });
+
+        node.addEventListener("drop", event => {
+          if (!state.draggedItemId || state.draggedItemId === item.id) return;
+          event.preventDefault();
+          const position = node.dataset.dropPosition || "before";
+          const draggedId = state.draggedItemId;
+          clearDragState();
+          reorderQueueItem(draggedId, item.id, position === "after");
+        });
+
+        dragHandle.addEventListener("dragend", clearDragState);
         node.querySelector(".remove-btn").addEventListener("click", () => {
+          if (item.thumbnailUrl) URL.revokeObjectURL(item.thumbnailUrl);
           state.queue = state.queue.filter(candidate => candidate.id !== item.id);
           renderQueue();
         });
       });
+    }
+
+    function clearDropIndicators() {
+      el.queue.querySelectorAll(".video-item").forEach(node => {
+        node.classList.remove("drop-before", "drop-after");
+        delete node.dataset.dropPosition;
+      });
+    }
+
+    function clearDragState() {
+      state.draggedItemId = "";
+      clearDropIndicators();
+      el.queue.querySelectorAll(".video-item.dragging").forEach(node => node.classList.remove("dragging"));
+    }
+
+    function reorderQueueItem(draggedId, targetId, placeAfter) {
+      const fromIndex = state.queue.findIndex(item => item.id === draggedId);
+      if (fromIndex < 0 || draggedId === targetId) return;
+
+      const [movedItem] = state.queue.splice(fromIndex, 1);
+      let targetIndex = state.queue.findIndex(item => item.id === targetId);
+      if (targetIndex < 0) {
+        state.queue.splice(fromIndex, 0, movedItem);
+        return;
+      }
+      if (placeAfter) targetIndex += 1;
+      state.queue.splice(targetIndex, 0, movedItem);
+      renderQueue();
+      setStatus(el.uploadStatus, "已更新影片上傳順序", "success");
     }
 
     function applyDefaults() {
