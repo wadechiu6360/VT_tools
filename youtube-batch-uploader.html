@@ -725,6 +725,11 @@
     .file-size { white-space: nowrap; }
 
     .file-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 104px;
+      box-sizing: border-box;
       padding: 3px 7px;
       border-radius: 999px;
       color: var(--green-dark);
@@ -1150,9 +1155,18 @@
         error: `剩餘量：共用同步失敗，目前暫用本機紀錄${detail ? `（${detail}）` : ""}`
       };
       el.quotaSyncStatus.textContent = messages[status] || messages.local;
+      el.oauthGrid.querySelectorAll(".quota-number small").forEach(label => {
+        label.textContent = getQuotaSourceLabel();
+      });
     }
 
-    function requestSharedQuota(params = {}) {
+    function getQuotaSourceLabel() {
+      if (state.quotaSyncState === "shared") return "共用預估剩餘";
+      if (state.quotaSyncState === "syncing") return "共用同步中";
+      return "本機預估剩餘";
+    }
+
+    function requestSharedQuotaJsonp(params = {}) {
       if (!SHARED_QUOTA_ENDPOINT) {
         return Promise.reject(new Error("尚未設定共用配額網址"));
       }
@@ -1188,6 +1202,27 @@
         script.src = url.toString();
         document.head.append(script);
       });
+    }
+
+    async function requestSharedQuota(params = {}) {
+      if (!SHARED_QUOTA_ENDPOINT) {
+        throw new Error("尚未設定共用配額網址");
+      }
+
+      // 修改計數維持單一路徑，避免網路重試造成重複扣除。
+      if (params.action) return requestSharedQuotaJsonp(params);
+
+      const url = new URL(SHARED_QUOTA_ENDPOINT);
+      url.searchParams.set("_", String(Date.now()));
+      try {
+        const response = await fetch(url, { cache: "no-store", redirect: "follow" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        if (!payload?.ok) throw new Error(payload?.error || "同步服務發生錯誤");
+        return payload;
+      } catch {
+        return requestSharedQuotaJsonp();
+      }
     }
 
     async function syncQuotaFromServer(silent = false) {
@@ -1244,7 +1279,7 @@
             </span>
             <span class="quota-main">
               <span class="quota-ring" style="--used-percent:${usedPercent}%" aria-label="預估剩餘 ${remaining} 支">
-                <span class="quota-number">${remaining}<small>${state.quotaSyncState === "shared" ? "共用預估剩餘" : "本機預估剩餘"}</small></span>
+                <span class="quota-number">${remaining}<small>${getQuotaSourceLabel()}</small></span>
               </span>
               <span class="quota-facts">
                 <span class="quota-fact"><small>今日已使用</small><strong>${used} 支</strong></span>
@@ -1572,6 +1607,19 @@
       el.clearQueueBtn.disabled = state.uploading || !state.queue.length;
     }
 
+    function getQueueItemStatusText(item) {
+      return item.status === "上傳中"
+        ? `上傳中 ${Math.max(0, Math.min(100, Number(item.progress) || 0))}%`
+        : item.status;
+    }
+
+    function updateQueueItemProgress(item) {
+      const itemNode = Array.from(el.queue.querySelectorAll(".video-item"))
+        .find(node => node.dataset.id === item.id);
+      const statusNode = itemNode?.querySelector(".file-status");
+      if (statusNode) statusNode.textContent = getQueueItemStatusText(item);
+    }
+
     function renderQueue() {
       updateQueueSummary();
       updateSelectionActions();
@@ -1599,7 +1647,7 @@
               </span>
               <span class="file-meta">
                 <span class="file-size">${formatBytes(item.file.size)}</span>
-                <span class="file-status${item.status === "上傳成功" ? " success" : item.status === "上傳失敗" ? " error" : ""}">${escapeHtml(item.status)}</span>
+                <span class="file-status${item.status === "上傳成功" ? " success" : item.status === "上傳失敗" ? " error" : ""}">${escapeHtml(getQueueItemStatusText(item))}</span>
               </span>
             </div>
             <div class="video-fields-row">
@@ -1819,6 +1867,7 @@
           if (!event.lengthComputable) return;
           item.progress = Math.round((event.loaded / event.total) * 100);
           setOverallProgress(completedCount, item.progress);
+          updateQueueItemProgress(item);
           setStatus(el.uploadStatus, `正在上傳：${item.title}（${item.progress}%）`);
         });
 
