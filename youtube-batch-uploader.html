@@ -725,11 +725,14 @@
     .file-size { white-space: nowrap; }
 
     .file-status {
+      --upload-progress: 0%;
+      position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       width: 104px;
       box-sizing: border-box;
+      overflow: hidden;
       padding: 3px 7px;
       border-radius: 999px;
       color: var(--green-dark);
@@ -740,6 +743,33 @@
 
     .file-status.success { color: #fff; background: var(--green); }
     .file-status.error { color: var(--red); background: var(--red-soft); }
+
+    .file-status.uploading {
+      color: transparent;
+      background: linear-gradient(
+        90deg,
+        var(--green) 0 var(--upload-progress),
+        var(--green-soft) var(--upload-progress) 100%
+      );
+    }
+
+    .file-status.uploading::after {
+      content: attr(data-label);
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 3px 7px;
+      background: linear-gradient(
+        90deg,
+        #fff 0 var(--upload-progress),
+        var(--green-dark) var(--upload-progress) 100%
+      );
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+    }
 
     .video-item .field { gap: 4px; }
     .video-item .field-label { font-size: 14px; line-height: 1.45; }
@@ -1196,7 +1226,7 @@
           finish(null, payload);
         };
         script.onerror = () => finish(new Error("無法連接共用配額服務"));
-        Object.entries({ ...params, callback: callbackName }).forEach(([key, value]) => {
+        Object.entries({ ...params, _: Date.now(), callback: callbackName }).forEach(([key, value]) => {
           url.searchParams.set(key, String(value));
         });
         script.src = url.toString();
@@ -1241,26 +1271,29 @@
       }
     }
 
-    function updateSharedQuota(action, clientId, value) {
-      if (!SHARED_QUOTA_ENDPOINT) return;
+    async function updateSharedQuota(action, clientId, value) {
+      if (!SHARED_QUOTA_ENDPOINT) return false;
       updateQuotaSyncStatus("syncing");
-      requestSharedQuota({ action, clientId, value })
-        .then(payload => {
-          updateQuotaSyncStatus("shared");
-          applySharedQuotaSnapshot(payload);
-        })
-        .catch(error => updateQuotaSyncStatus("error", error.message));
+      try {
+        const payload = await requestSharedQuota({ action, clientId, value });
+        updateQuotaSyncStatus("shared");
+        applySharedQuotaSnapshot(payload);
+        return true;
+      } catch (error) {
+        updateQuotaSyncStatus("error", error.message);
+        return false;
+      }
     }
 
-    function setClientUsage(clientId, used) {
+    async function setClientUsage(clientId, used) {
       const normalized = Math.max(0, Math.round(Number(used) || 0));
       writeLocalClientUsage(clientId, normalized);
-      updateSharedQuota("set", clientId, normalized);
+      return updateSharedQuota("set", clientId, normalized);
     }
 
-    function recordInsertAttempt(clientId) {
+    async function recordInsertAttempt(clientId) {
       writeLocalClientUsage(clientId, getClientUsage(clientId) + 1);
-      updateSharedQuota("increment", clientId, 1);
+      return updateSharedQuota("increment", clientId, 1);
     }
 
     function renderOAuthCards() {
@@ -1613,11 +1646,25 @@
         : item.status;
     }
 
+    function getQueueItemStatusClass(item) {
+      if (item.status === "上傳成功") return " success";
+      if (item.status === "上傳失敗") return " error";
+      if (item.status === "上傳中") return " uploading";
+      return "";
+    }
+
     function updateQueueItemProgress(item) {
       const itemNode = Array.from(el.queue.querySelectorAll(".video-item"))
         .find(node => node.dataset.id === item.id);
       const statusNode = itemNode?.querySelector(".file-status");
-      if (statusNode) statusNode.textContent = getQueueItemStatusText(item);
+      if (statusNode) {
+        const label = getQueueItemStatusText(item);
+        const progress = Math.max(0, Math.min(100, Number(item.progress) || 0));
+        statusNode.textContent = label;
+        statusNode.dataset.label = label;
+        statusNode.className = `file-status${getQueueItemStatusClass(item)}`;
+        statusNode.style.setProperty("--upload-progress", `${progress}%`);
+      }
     }
 
     function renderQueue() {
@@ -1647,7 +1694,7 @@
               </span>
               <span class="file-meta">
                 <span class="file-size">${formatBytes(item.file.size)}</span>
-                <span class="file-status${item.status === "上傳成功" ? " success" : item.status === "上傳失敗" ? " error" : ""}">${escapeHtml(getQueueItemStatusText(item))}</span>
+                <span class="file-status${getQueueItemStatusClass(item)}" data-label="${escapeHtml(getQueueItemStatusText(item))}" style="--upload-progress:${Math.max(0, Math.min(100, Number(item.progress) || 0))}%">${escapeHtml(getQueueItemStatusText(item))}</span>
               </span>
             </div>
             <div class="video-fields-row">
@@ -1832,7 +1879,7 @@
         status: { privacyStatus: item.privacy }
       };
 
-      recordInsertAttempt(state.selectedClientId);
+      await recordInsertAttempt(state.selectedClientId);
 
       const response = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
         method: "POST",
@@ -2021,7 +2068,7 @@
       setStatus(el.uploadStatus, `已複製 ${rows.length} 支影片資料；貼到 Excel 會分成三欄`, "success");
     }
 
-    function resetSelectedQuota() {
+    async function resetSelectedQuota() {
       const current = getClientUsage(state.selectedClientId);
       const value = prompt("請輸入這組專案今天已使用的 videos.insert 次數：", String(current));
       if (value === null) return;
@@ -2030,8 +2077,14 @@
         setStatus(el.authStatus, "請輸入 0 以上的整數", "error");
         return;
       }
-      setClientUsage(state.selectedClientId, parsed);
-      setStatus(el.authStatus, `已把這組專案的今日用量校正為 ${parsed} 次`, "success");
+      const synced = await setClientUsage(state.selectedClientId, parsed);
+      setStatus(
+        el.authStatus,
+        synced
+          ? `已把這組專案的共用今日用量校正為 ${parsed} 次`
+          : `已暫存在本機，但共用同步失敗，請稍後再試`,
+        synced ? "success" : "error"
+      );
     }
 
     el.authorizeBtn.addEventListener("click", authorize);
