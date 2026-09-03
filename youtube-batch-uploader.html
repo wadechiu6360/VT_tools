@@ -1,297 +1,844 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>YouTube 批次上傳工具</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --ink: #14211c;
+      --muted: #637068;
+      --paper: #fffdf7;
+      --surface: rgba(255, 255, 255, .86);
+      --line: #d9dfd9;
+      --green: #176b4d;
+      --green-dark: #0e5039;
+      --green-soft: #e2f2e9;
+      --yellow: #f2b84b;
+      --red: #c94b40;
+      --red-soft: #fae8e5;
+      --shadow: 0 22px 70px rgba(36, 53, 44, .12);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: "Segoe UI", "Noto Sans TC", sans-serif;
-      background: #f6f1e8;
-      color: #1f1a17;
+      min-width: 320px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 5%, rgba(242, 184, 75, .20), transparent 28rem),
+        radial-gradient(circle at 95% 24%, rgba(23, 107, 77, .14), transparent 32rem),
+        linear-gradient(145deg, #f7f3e7 0%, #eff7f0 52%, #f8f4e9 100%);
+      font-family: "Noto Sans TC", sans-serif;
+      min-height: 100vh;
     }
-    .wrap {
-      max-width: 1100px;
-      margin: 24px auto;
-      padding: 0 16px;
+
+    button, input, select, textarea { font: inherit; }
+
+    button { cursor: pointer; }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 54px 0 72px;
     }
-    .card {
-      background: #fffdf8;
-      border: 1px solid #e6dccd;
-      border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.06);
-    }
-    h1, h2 {
-      margin: 0 0 12px;
-    }
-    p {
-      color: #675f56;
-      line-height: 1.6;
-    }
-    .grid {
+
+    .hero {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 24px;
+      margin-bottom: 30px;
     }
-    label {
-      display: block;
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--green);
+      font: 700 13px/1.2 "IBM Plex Sans", sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 760px;
+      font: 700 clamp(34px, 6vw, 64px)/1.05 "IBM Plex Sans", "Noto Sans TC", sans-serif;
+      letter-spacing: -.04em;
+    }
+
+    .hero-note {
+      max-width: 310px;
+      margin: 0 0 4px;
+      color: var(--muted);
       font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 10px;
+      line-height: 1.75;
     }
-    input[type="text"], textarea, select {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid #d8cbbb;
-      box-sizing: border-box;
-      font: inherit;
-      background: white;
+
+    .panel {
+      margin-top: 20px;
+      padding: 28px;
+      border: 1px solid rgba(217, 223, 217, .9);
+      border-radius: 24px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
     }
-    textarea {
-      min-height: 90px;
-      resize: vertical;
+
+    .section-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
     }
-    input[type="file"] {
-      display: none;
+
+    .section-title {
+      margin: 0;
+      font: 700 23px/1.25 "IBM Plex Sans", "Noto Sans TC", sans-serif;
+      letter-spacing: -.02em;
     }
-    .upload-dropzone {
-      border: 2px dashed #d6b89f;
-      background: linear-gradient(180deg, #fffaf2 0%, #f8efe3 100%);
-      border-radius: 18px;
-      padding: 40px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: .18s ease;
-      margin-bottom: 12px;
+
+    .section-title span {
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      margin-right: 10px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--ink);
+      font-size: 15px;
+      vertical-align: 2px;
     }
-    .upload-dropzone:hover {
-      border-color: #cc4b2d;
-      background: linear-gradient(180deg, #fff8ef 0%, #f6ebde 100%);
-    }
-    .upload-dropzone.dragover {
-      border-color: #cc4b2d;
-      background: #fff3e8;
-      box-shadow: inset 0 0 0 2px rgba(204,75,45,.08);
-    }
-    .upload-dropzone-title {
-      font-size: 20px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      color: #2d241e;
-    }
-    .upload-dropzone-text {
-      font-size: 14px;
-      color: #6c635b;
+
+    .section-copy {
+      max-width: 540px;
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
       line-height: 1.7;
+      text-align: right;
     }
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 12px 18px;
-      font: inherit;
-      font-weight: 700;
+
+    .oauth-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .oauth-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      align-items: center;
+      gap: 16px;
+      min-height: 178px;
+      padding: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.72);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
       cursor: pointer;
-      margin-right: 8px;
-      margin-bottom: 8px;
     }
-    .primary {
-      background: #cc4b2d;
-      color: white;
+
+    .oauth-card:hover {
+      transform: translateY(-2px);
+      border-color: #a9bdb1;
     }
-    .secondary {
-      background: #eee5d7;
-      color: #332a24;
-    }
-    .status {
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #f5efe5;
-      margin-top: 10px;
-      font-size: 14px;
-    }
-    .row {
-      border: 1px solid #eadfce;
-      border-radius: 14px;
-      padding: 14px;
-      margin-top: 12px;
+
+    .oauth-card.selected {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(23, 107, 77, .12);
       background: #fff;
     }
-    .row-grid {
+
+    .oauth-card input[type="radio"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .quota-ring {
+      --used-percent: 0%;
+      position: relative;
       display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 12px;
+      place-items: center;
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      background: conic-gradient(var(--green) var(--used-percent), #e7ebe6 0);
     }
-    .meta {
-      font-size: 12px;
-      color: #6c635b;
-      margin-top: 8px;
+
+    .quota-ring::after {
+      content: "";
+      position: absolute;
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      background: #fff;
     }
-    progress {
+
+    .quota-number {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font: 700 24px/1 "IBM Plex Sans", sans-serif;
+    }
+
+    .quota-number small {
+      margin-top: 5px;
+      color: var(--muted);
+      font: 500 10px/1 "Noto Sans TC", sans-serif;
+    }
+
+    .client-name {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .selected-badge {
+      display: none;
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: var(--green-dark);
+      background: var(--green-soft);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .oauth-card.selected .selected-badge { display: inline-block; }
+
+    .client-id {
+      min-height: 37px;
+      color: var(--muted);
+      font: 500 11px/1.55 "IBM Plex Sans", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .quota-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .auth-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      min-height: 24px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      margin-right: 9px;
+      border-radius: 50%;
+      background: #aeb8b2;
+    }
+
+    .status.success { color: var(--green-dark); }
+    .status.success::before { background: var(--green); }
+    .status.error { color: var(--red); }
+    .status.error::before { background: var(--red); }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      min-height: 44px;
+      padding: 10px 17px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      background: #fff;
+      font-weight: 700;
+      transition: transform .15s ease, background .15s ease, opacity .15s ease;
+    }
+
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn:disabled { cursor: not-allowed; opacity: .46; }
+    .btn-primary { color: #fff; border-color: var(--green); background: var(--green); }
+    .btn-primary:hover:not(:disabled) { background: var(--green-dark); }
+    .btn-dark { color: #fff; border-color: var(--ink); background: var(--ink); }
+    .btn-danger { color: var(--red); border-color: #e9bbb6; background: var(--red-soft); }
+
+    .drop-zone {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 230px;
+      padding: 36px;
+      border: 2px dashed #9db5a7;
+      border-radius: 22px;
+      background:
+        linear-gradient(rgba(255,255,255,.76), rgba(255,255,255,.76)),
+        repeating-linear-gradient(45deg, transparent 0 14px, rgba(23,107,77,.06) 14px 15px);
+      text-align: center;
+      transition: border-color .2s ease, background .2s ease, transform .2s ease;
+      cursor: pointer;
+    }
+
+    .drop-zone.dragover {
+      transform: scale(1.005);
+      border-color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .drop-zone input {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      height: 12px;
-      margin-top: 8px;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
     }
+
+    .drop-icon {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 14px;
+      border-radius: 18px;
+      color: #fff;
+      background: var(--green);
+      font: 700 28px/1 "IBM Plex Sans", sans-serif;
+    }
+
+    .drop-title { margin: 0 0 7px; font-size: 19px; font-weight: 700; }
+    .drop-note { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .defaults-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, .45fr);
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .field { display: grid; gap: 8px; }
+    .field-wide { grid-column: 1 / -1; }
+
+    label.field-label {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .input, .select, .textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .input, .select { min-height: 46px; padding: 10px 13px; }
+    .textarea { min-height: 104px; padding: 12px 13px; resize: vertical; line-height: 1.6; }
+    .input:focus, .select:focus, .textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(23,107,77,.12); }
+
+    .apply-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .queue-summary { color: var(--muted); font-size: 13px; }
+    .queue-summary strong { color: var(--ink); }
+
+    .queue {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .queue-empty {
+      padding: 24px;
+      border-radius: 14px;
+      color: var(--muted);
+      background: rgba(231,235,230,.56);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .video-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 170px 44px;
+      gap: 12px;
+      align-items: start;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .file-name {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .file-name strong { color: var(--ink); overflow-wrap: anywhere; }
+
+    .remove-btn {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 1px solid #e9bbb6;
+      border-radius: 12px;
+      color: var(--red);
+      background: var(--red-soft);
+      font-size: 20px;
+    }
+
+    .upload-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .overall-progress {
+      flex: 1;
+      max-width: 480px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5eae6;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), #55a377);
+      transition: width .25s ease;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
+      min-width: 720px;
     }
+
     th, td {
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--line);
       text-align: left;
-      padding: 10px 8px;
-      border-bottom: 1px solid #ece2d3;
-      vertical-align: top;
-    }
-    a {
-      color: #cc4b2d;
-      word-break: break-all;
-    }
-    .small {
+      vertical-align: middle;
       font-size: 13px;
-      color: #6c635b;
     }
-    .auth-box {
-      max-width: 520px;
+
+    th { color: var(--muted); font-size: 12px; font-weight: 700; }
+    td a { color: var(--green-dark); font-weight: 700; }
+    .result-empty { color: var(--muted); text-align: center; padding: 30px; }
+    .pill { display: inline-block; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .pill.success { color: var(--green-dark); background: var(--green-soft); }
+    .pill.error { color: var(--red); background: var(--red-soft); }
+    .pill.uploading { color: #77540d; background: #fff1c9; }
+
+    .fine-print {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
     }
-    @media (max-width: 780px) {
-      .grid, .row-grid {
-        grid-template-columns: 1fr;
-      }
-      .upload-dropzone {
-        padding: 28px 18px;
-      }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-note { max-width: 620px; }
+      .oauth-grid { grid-template-columns: 1fr; }
+      .oauth-card { min-height: 145px; }
+      .video-item { grid-template-columns: 1fr 1fr 44px; }
+      .video-item .description-field { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 650px) {
+      .page { width: min(100% - 20px, 1180px); padding-top: 30px; }
+      .panel { padding: 18px; border-radius: 18px; }
+      .section-heading, .auth-bar, .upload-actions, .apply-row { align-items: stretch; flex-direction: column; }
+      .section-copy { text-align: left; }
+      .defaults-grid { grid-template-columns: 1fr; }
+      .field-wide { grid-column: auto; }
+      .video-item { grid-template-columns: 1fr 44px; }
+      .video-item .title-field, .video-item .description-field, .video-item .privacy-field { grid-column: 1 / -1; }
+      .video-item .remove-btn { grid-column: 2; grid-row: 2; }
+      .button-row .btn { flex: 1 1 180px; }
+      .overall-progress { max-width: none; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>YouTube 批次上傳工具</h1>
-      <p>選多支影片、設定瀏覽權限、批次上傳，最後自動整理出影片名稱與連結。</p>
-      <p class="small">注意：如果你的 Google API 專案未通過 YouTube 稽核，影片可能會被強制成私人。</p>
-    </div>
+  <main class="page">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">YouTube Studio Assistant</p>
+        <h1>一次選好，一次上傳。</h1>
+      </div>
+      <p class="hero-note">批次設定影片資訊、切換 API 專案，完成後直接複製影片名稱、原始檔案名稱與連結到 Excel。</p>
+    </header>
 
-    <div class="card auth-box">
-      <h2>1. 授權設定</h2>
-      <label>
-        Google OAuth Client ID
-        <input
-          id="clientId"
-          type="text"
-          value="419288382322-u804ljbj6jnt1530q5khrmo4s0mnbgbv.apps.googleusercontent.com"
-          placeholder="貼上你的 Web OAuth Client ID"
-        >
-      </label>
-      <button id="authBtn" class="primary">連接 Google / YouTube</button>
-      <button id="revokeBtn" class="secondary">取消授權</button>
-      <div id="authStatus" class="status">尚未授權</div>
-    </div>
+    <section class="panel" aria-labelledby="auth-title">
+      <div class="section-heading">
+        <h2 class="section-title" id="auth-title"><span>1</span>授權設定</h2>
+        <p class="section-copy">選擇一組 OAuth 專案後再授權。每組的今日用量各自記錄在這台裝置的瀏覽器。</p>
+      </div>
 
-    <div class="card">
-      <h2>2. 選影片</h2>
+      <div class="oauth-grid" id="oauthGrid"></div>
 
-      <label for="videoInput">上傳影片</label>
-      <div id="dropzone" class="upload-dropzone">
-        <div class="upload-dropzone-title">把影片拖到這裡</div>
-        <div class="upload-dropzone-text">
-          或點一下這個區塊選擇多支影片<br>
-          支援批次加入，加入後可個別修改標題、說明與瀏覽權限
+      <div class="auth-bar">
+        <div>
+          <div class="status" id="authStatus" aria-live="polite">尚未授權</div>
+          <p class="fine-print" id="quotaResetText"></p>
+        </div>
+        <div class="button-row">
+          <button class="btn" id="resetQuotaBtn" type="button">校正今日紀錄</button>
+          <button class="btn btn-primary" id="authorizeBtn" type="button">連接 Google OAuth</button>
         </div>
       </div>
-      <input id="videoInput" type="file" accept="video/*" multiple>
+      <p class="fine-print">這是本工具依上傳請求計算的預估值，不是 Google Cloud 即時官方餘額。預設採用每個專案每日 100 次 videos.insert；若你的專案曾申請調整，請以 Google Cloud Console 顯示為準。</p>
+    </section>
 
-      <div class="grid">
-        <label>
-          預設標題
-          <input id="defaultTitle" type="text" placeholder="可留空，留空時仍用檔名">
-        </label>
+    <section class="panel" aria-labelledby="files-title">
+      <div class="section-heading">
+        <h2 class="section-title" id="files-title"><span>2</span>選影片與設定</h2>
+        <p class="section-copy">可一次選取多支影片，也可以直接把檔案拖進下方的大框。</p>
+      </div>
 
-        <label>
-          預設瀏覽權限
-          <select id="defaultPrivacy">
+      <label class="drop-zone" id="dropZone">
+        <input id="fileInput" type="file" accept="video/*" multiple>
+        <span>
+          <span class="drop-icon">+</span>
+          <span class="drop-title">選擇檔案上傳</span>
+          <span class="drop-note">點一下選擇影片，或將多支影片拖曳到這裡</span>
+        </span>
+      </label>
+
+      <div class="defaults-grid">
+        <div class="field">
+          <label class="field-label" for="defaultTitle">預設標題</label>
+          <input class="input" id="defaultTitle" type="text" placeholder="留空時使用各影片的檔名">
+        </div>
+        <div class="field">
+          <label class="field-label" for="defaultPrivacy">預設權限</label>
+          <select class="select" id="defaultPrivacy">
             <option value="public">公開</option>
             <option value="unlisted" selected>不公開</option>
             <option value="private">私人</option>
           </select>
-        </label>
+        </div>
+        <div class="field field-wide">
+          <label class="field-label" for="defaultDescription">預設說明</label>
+          <textarea class="textarea" id="defaultDescription" placeholder="可留空"></textarea>
+        </div>
       </div>
 
-      <label>
-        預設說明
-        <textarea id="defaultDescription" placeholder="可留空"></textarea>
-      </label>
+      <div class="apply-row">
+        <div class="queue-summary" id="queueSummary">尚未選擇影片</div>
+        <button class="btn" id="applyDefaultsBtn" type="button">套用預設到全部</button>
+      </div>
+      <div class="queue" id="queue"></div>
+    </section>
 
-      <div style="margin-top:12px;">
-        <button id="applyDefaultsBtn" class="secondary">套用預設到全部</button>
-        <button id="clearBtn" class="secondary">清空片單</button>
+    <section class="panel" aria-labelledby="upload-title">
+      <div class="section-heading">
+        <h2 class="section-title" id="upload-title"><span>3</span>上傳與整理</h2>
+        <p class="section-copy">影片會依序上傳；完成後可一鍵複製三欄資料，貼到 Excel 時會自動落在 A、B、C 欄。</p>
       </div>
 
-      <div id="queueStatus" class="status">尚未加入影片</div>
-      <div id="queue"></div>
-    </div>
+      <div class="upload-actions">
+        <div class="overall-progress">
+          <div class="progress-label"><span id="progressText">等待上傳</span><strong id="progressPercent">0%</strong></div>
+          <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+        </div>
+        <div class="button-row">
+          <button class="btn btn-dark" id="uploadBtn" type="button">開始批次上傳</button>
+          <button class="btn" id="copyBtn" type="button">複製影片名稱+原始檔案名稱+連結</button>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>3. 上傳與整理</h2>
-      <button id="uploadBtn" class="primary">開始批次上傳</button>
-      <button id="copyBtn" class="secondary">複製影片名稱+原始檔案名稱+連結</button>
-      <div id="uploadStatus" class="status">等待中</div>
+      <div class="status" id="uploadStatus" aria-live="polite">尚未開始</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>影片名稱</th>
+              <th>原始檔案名稱</th>
+              <th>狀態</th>
+              <th>連結</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-      <table>
-        <thead>
-          <tr>
-            <th>影片名稱</th>
-            <th>原始檔案名稱</th>
-            <th>狀態</th>
-            <th>連結</th>
-          </tr>
-        </thead>
-        <tbody id="resultsBody">
-          <tr><td colspan="4" class="small">還沒有結果</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
-    const STORAGE_KEY = "yt_uploader_settings_v9";
+    "use strict";
+
+    const CLIENTS = [
+      {
+        name: "OAuth 專案 1",
+        id: "419288382322-u804ljbj6jnt1530q5khrmo4s0mnbgbv.apps.googleusercontent.com"
+      },
+      {
+        name: "OAuth 專案 2",
+        id: "1021550166691-5hsfebehjbl23agd91bsafpkt50prmpo.apps.googleusercontent.com"
+      },
+      {
+        name: "OAuth 專案 3",
+        id: "538091990315-dtbn7m4vat1mtghekc0g23gsgl5akc0f.apps.googleusercontent.com"
+      }
+    ];
+
+    const DEFAULT_DAILY_INSERT_LIMIT = 100;
+    const SETTINGS_KEY = "yt_batch_uploader_settings_v10";
+    const QUOTA_KEY = "yt_batch_uploader_insert_usage_v2";
     const SCOPE = "https://www.googleapis.com/auth/youtube.upload";
 
     const state = {
-      tokenClient: null,
+      selectedClientId: CLIENTS[0].id,
       accessToken: "",
+      tokenClient: null,
       queue: [],
-      results: []
+      results: [],
+      uploading: false
     };
 
     const el = {
-      clientId: document.getElementById("clientId"),
-      defaultPrivacy: document.getElementById("defaultPrivacy"),
-      defaultTitle: document.getElementById("defaultTitle"),
-      defaultDescription: document.getElementById("defaultDescription"),
-      authBtn: document.getElementById("authBtn"),
-      revokeBtn: document.getElementById("revokeBtn"),
+      oauthGrid: document.getElementById("oauthGrid"),
       authStatus: document.getElementById("authStatus"),
-      videoInput: document.getElementById("videoInput"),
-      dropzone: document.getElementById("dropzone"),
+      quotaResetText: document.getElementById("quotaResetText"),
+      authorizeBtn: document.getElementById("authorizeBtn"),
+      resetQuotaBtn: document.getElementById("resetQuotaBtn"),
+      dropZone: document.getElementById("dropZone"),
+      fileInput: document.getElementById("fileInput"),
+      defaultTitle: document.getElementById("defaultTitle"),
+      defaultPrivacy: document.getElementById("defaultPrivacy"),
+      defaultDescription: document.getElementById("defaultDescription"),
       applyDefaultsBtn: document.getElementById("applyDefaultsBtn"),
-      clearBtn: document.getElementById("clearBtn"),
-      queueStatus: document.getElementById("queueStatus"),
+      queueSummary: document.getElementById("queueSummary"),
       queue: document.getElementById("queue"),
       uploadBtn: document.getElementById("uploadBtn"),
       copyBtn: document.getElementById("copyBtn"),
       uploadStatus: document.getElementById("uploadStatus"),
+      progressText: document.getElementById("progressText"),
+      progressPercent: document.getElementById("progressPercent"),
+      progressBar: document.getElementById("progressBar"),
       resultsBody: document.getElementById("resultsBody")
     };
 
+    function stripExt(name) {
+      return name.replace(/\.[^.]+$/, "");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+      const units = ["B", "KB", "MB", "GB", "TB"];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / Math.pow(1024, index)).toFixed(index ? 1 : 0)} ${units[index]}`;
+    }
+
+    function setStatus(target, message, type = "") {
+      target.textContent = message;
+      target.className = `status${type ? ` ${type}` : ""}`;
+    }
+
+    function getPacificDateKey(date = new Date()) {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(date);
+      const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      return `${values.year}-${values.month}-${values.day}`;
+    }
+
+    function readQuotaStore() {
+      try {
+        return JSON.parse(localStorage.getItem(QUOTA_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function getClientUsage(clientId) {
+      const store = readQuotaStore();
+      const today = getPacificDateKey();
+      const entry = store[clientId];
+      if (!entry || entry.date !== today) return 0;
+      return Math.max(0, Number(entry.used) || 0);
+    }
+
+    function setClientUsage(clientId, used) {
+      const store = readQuotaStore();
+      store[clientId] = {
+        date: getPacificDateKey(),
+        used: Math.max(0, Math.round(Number(used) || 0))
+      };
+      localStorage.setItem(QUOTA_KEY, JSON.stringify(store));
+      renderOAuthCards();
+    }
+
+    function recordInsertAttempt(clientId) {
+      setClientUsage(clientId, getClientUsage(clientId) + 1);
+    }
+
+    function renderOAuthCards() {
+      el.oauthGrid.innerHTML = CLIENTS.map((client, index) => {
+        const used = getClientUsage(client.id);
+        const remaining = Math.max(0, DEFAULT_DAILY_INSERT_LIMIT - used);
+        const usedPercent = Math.min(100, (used / DEFAULT_DAILY_INSERT_LIMIT) * 100);
+        const selected = client.id === state.selectedClientId;
+        return `
+          <label class="oauth-card${selected ? " selected" : ""}" data-client-id="${escapeHtml(client.id)}">
+            <input type="radio" name="oauthClient" value="${escapeHtml(client.id)}" ${selected ? "checked" : ""}>
+            <span class="quota-ring" style="--used-percent:${usedPercent}%" aria-label="預估剩餘 ${remaining} 支">
+              <span class="quota-number">${remaining}<small>預估剩餘</small></span>
+            </span>
+            <span>
+              <span class="client-name">${escapeHtml(client.name)}<span class="selected-badge">使用中</span></span>
+              <span class="client-id">${escapeHtml(client.id)}</span>
+              <span class="quota-meta"><span>今日已計 ${used} 支</span><span>預設上限 ${DEFAULT_DAILY_INSERT_LIMIT}</span></span>
+            </span>
+          </label>`;
+      }).join("");
+
+      el.oauthGrid.querySelectorAll('input[name="oauthClient"]').forEach(input => {
+        input.addEventListener("change", () => selectClient(input.value));
+      });
+
+      updateQuotaResetText();
+    }
+
+    function selectClient(clientId) {
+      if (state.uploading || clientId === state.selectedClientId) return;
+      state.selectedClientId = clientId;
+      state.accessToken = "";
+      state.tokenClient = null;
+      saveSettings();
+      renderOAuthCards();
+      setStatus(el.authStatus, "已切換專案，請重新連接 Google OAuth");
+      el.authorizeBtn.textContent = "連接 Google OAuth";
+    }
+
+    function updateQuotaResetText() {
+      const now = new Date();
+      const pacificTime = new Intl.DateTimeFormat("zh-TW", {
+        timeZone: "America/Los_Angeles",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).format(now);
+      el.quotaResetText.textContent = `配額依美國太平洋時間每日歸零；目前太平洋時間 ${pacificTime}`;
+    }
+
+    function initTokenClient() {
+      if (!window.google?.accounts?.oauth2) {
+        throw new Error("Google 授權元件尚未載入，請稍等幾秒後再試");
+      }
+
+      state.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: state.selectedClientId,
+        scope: SCOPE,
+        callback: response => {
+          if (response.error) {
+            state.accessToken = "";
+            setStatus(el.authStatus, `授權失敗：${response.error_description || response.error}`, "error");
+            return;
+          }
+          state.accessToken = response.access_token;
+          el.authorizeBtn.textContent = "重新選擇 Google 帳號";
+          setStatus(el.authStatus, "授權成功，可以開始上傳", "success");
+        },
+        error_callback: error => {
+          setStatus(el.authStatus, `授權視窗錯誤：${error.type || "請重試"}`, "error");
+        }
+      });
+    }
+
+    function authorize() {
+      try {
+        initTokenClient();
+        state.tokenClient.requestAccessToken({ prompt: "select_account consent" });
+        setStatus(el.authStatus, "正在等待 Google 帳號授權…");
+      } catch (error) {
+        setStatus(el.authStatus, error.message, "error");
+      }
+    }
+
     function saveSettings() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        clientId: el.clientId.value.trim(),
-        defaultTitle: el.defaultTitle.value.trim(),
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        selectedClientId: state.selectedClientId,
+        defaultTitle: el.defaultTitle.value,
         defaultPrivacy: el.defaultPrivacy.value,
         defaultDescription: el.defaultDescription.value
       }));
@@ -299,403 +846,345 @@
 
     function loadSettings() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const s = JSON.parse(raw);
-        el.clientId.value = s.clientId || "419288382322-u804ljbj6jnt1530q5khrmo4s0mnbgbv.apps.googleusercontent.com";
-        el.defaultTitle.value = s.defaultTitle || "";
-        el.defaultPrivacy.value = s.defaultPrivacy || "unlisted";
-        el.defaultDescription.value = s.defaultDescription || "";
+        const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+        if (!settings) return;
+        if (CLIENTS.some(client => client.id === settings.selectedClientId)) {
+          state.selectedClientId = settings.selectedClientId;
+        }
+        el.defaultTitle.value = settings.defaultTitle || "";
+        el.defaultPrivacy.value = settings.defaultPrivacy || "unlisted";
+        el.defaultDescription.value = settings.defaultDescription || "";
       } catch {
-        el.clientId.value = "419288382322-u804ljbj6jnt1530q5khrmo4s0mnbgbv.apps.googleusercontent.com";
+        // Invalid saved data is safely ignored.
       }
     }
 
-    function setStatus(node, text, cls = "") {
-      node.className = "status" + (cls ? " " + cls : "");
-      node.textContent = text;
-    }
+    function addFiles(fileList) {
+      const incoming = Array.from(fileList).filter(file => file.type.startsWith("video/") || /\.(mp4|mov|m4v|avi|wmv|webm|mkv)$/i.test(file.name));
+      let added = 0;
 
-    function stripExt(name) {
-      return name.replace(/\.[^.]+$/, "");
-    }
+      incoming.forEach(file => {
+        const duplicate = state.queue.some(item => item.file.name === file.name && item.file.size === file.size && item.file.lastModified === file.lastModified);
+        if (duplicate) return;
+        state.queue.push({
+          id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+          file,
+          title: el.defaultTitle.value.trim() || stripExt(file.name),
+          description: el.defaultDescription.value,
+          privacy: el.defaultPrivacy.value,
+          status: "等待上傳",
+          progress: 0
+        });
+        added += 1;
+      });
 
-    function formatBytes(bytes) {
-      const u = ["B", "KB", "MB", "GB"];
-      let i = 0;
-      let n = bytes;
-      while (n >= 1024 && i < u.length - 1) {
-        n /= 1024;
-        i++;
-      }
-      return `${n.toFixed(i === 0 ? 0 : 1)} ${u[i]}`;
-    }
-
-    function escapeHtml(s) {
-      return String(s)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
-    }
-
-    function defaultItem(file) {
-      const presetTitle = el.defaultTitle.value.trim();
-      return {
-        id: crypto.randomUUID(),
-        file,
-        title: presetTitle || stripExt(file.name),
-        description: el.defaultDescription.value.trim(),
-        privacyStatus: el.defaultPrivacy.value,
-        progress: 0,
-        status: "待上傳",
-        link: "",
-        videoId: "",
-        error: ""
-      };
-    }
-
-    function addFiles(files) {
-      const picked = [...files].filter(file => file.type.startsWith("video/"));
-      if (!picked.length) return;
-      state.queue.push(...picked.map(defaultItem));
+      el.fileInput.value = "";
       renderQueue();
+      if (!added && incoming.length) setStatus(el.uploadStatus, "這些影片已經在清單中");
     }
 
     function renderQueue() {
+      const totalSize = state.queue.reduce((sum, item) => sum + item.file.size, 0);
+      el.queueSummary.innerHTML = state.queue.length
+        ? `已選擇 <strong>${state.queue.length}</strong> 支影片，共 <strong>${formatBytes(totalSize)}</strong>`
+        : "尚未選擇影片";
+
       if (!state.queue.length) {
-        el.queue.innerHTML = "";
-        setStatus(el.queueStatus, "尚未加入影片");
+        el.queue.innerHTML = '<div class="queue-empty">影片加入後，可在這裡逐支修改標題、說明和瀏覽權限。</div>';
         return;
       }
 
-      const total = state.queue.reduce((sum, x) => sum + x.file.size, 0);
-      setStatus(el.queueStatus, `共 ${state.queue.length} 支影片，總大小 ${formatBytes(total)}`);
-
-      el.queue.innerHTML = "";
-      for (const item of state.queue) {
-        const row = document.createElement("div");
-        row.className = "row";
-        row.innerHTML = `
-          <div class="row-grid">
-            <div>
-              <label>
-                影片標題
-                <input type="text" data-id="${item.id}" data-key="title" value="${escapeHtml(item.title)}">
-              </label>
-              <label>
-                影片說明
-                <textarea data-id="${item.id}" data-key="description">${escapeHtml(item.description)}</textarea>
-              </label>
-              <div class="meta">${escapeHtml(stripExt(item.file.name))} · ${formatBytes(item.file.size)}</div>
-            </div>
-            <div>
-              <label>
-                瀏覽權限
-                <select data-id="${item.id}" data-key="privacyStatus">
-                  <option value="public" ${item.privacyStatus === "public" ? "selected" : ""}>公開</option>
-                  <option value="unlisted" ${item.privacyStatus === "unlisted" ? "selected" : ""}>不公開</option>
-                  <option value="private" ${item.privacyStatus === "private" ? "selected" : ""}>私人</option>
-                </select>
-              </label>
-              <button class="secondary" data-remove="${item.id}">移除</button>
-              <div class="meta">${item.status}${item.error ? " · " + item.error : ""}</div>
-              <progress max="100" value="${item.progress}"></progress>
-              ${item.link ? `<div class="meta"><a href="${escapeHtml(item.link)}" target="_blank">${escapeHtml(item.link)}</a></div>` : ""}
-            </div>
+      el.queue.innerHTML = state.queue.map(item => `
+        <article class="video-item" data-id="${escapeHtml(item.id)}">
+          <div class="file-name"><strong>${escapeHtml(stripExt(item.file.name))}</strong><span>${formatBytes(item.file.size)} · ${escapeHtml(item.status)}</span></div>
+          <div class="field title-field">
+            <label class="field-label">影片標題</label>
+            <input class="input item-title" type="text" value="${escapeHtml(item.title)}" ${state.uploading ? "disabled" : ""}>
           </div>
-        `;
-        el.queue.appendChild(row);
-      }
-    }
+          <div class="field description-field">
+            <label class="field-label">影片說明</label>
+            <textarea class="textarea item-description" ${state.uploading ? "disabled" : ""}>${escapeHtml(item.description)}</textarea>
+          </div>
+          <div class="field privacy-field">
+            <label class="field-label">瀏覽權限</label>
+            <select class="select item-privacy" ${state.uploading ? "disabled" : ""}>
+              <option value="public" ${item.privacy === "public" ? "selected" : ""}>公開</option>
+              <option value="unlisted" ${item.privacy === "unlisted" ? "selected" : ""}>不公開</option>
+              <option value="private" ${item.privacy === "private" ? "selected" : ""}>私人</option>
+            </select>
+          </div>
+          <button class="remove-btn" type="button" aria-label="移除 ${escapeHtml(stripExt(item.file.name))}" ${state.uploading ? "disabled" : ""}>×</button>
+        </article>`).join("");
 
-    function renderResults() {
-      if (!state.results.length) {
-        el.resultsBody.innerHTML = `<tr><td colspan="4" class="small">還沒有結果</td></tr>`;
-        return;
-      }
-
-      el.resultsBody.innerHTML = state.results.map(r => `
-        <tr>
-          <td>${escapeHtml(r.title)}</td>
-          <td>${escapeHtml(r.originalFileName || "")}</td>
-          <td>${escapeHtml(r.status)}</td>
-          <td>${r.link ? `<a href="${escapeHtml(r.link)}" target="_blank">${escapeHtml(r.link)}</a>` : "-"}</td>
-        </tr>
-      `).join("");
-    }
-
-    function bindQueueEvents() {
-      el.queue.addEventListener("input", e => {
-        const id = e.target.dataset.id;
-        const key = e.target.dataset.key;
-        if (!id || !key) return;
-        const item = state.queue.find(x => x.id === id);
-        if (!item) return;
-        item[key] = e.target.value;
-      });
-
-      el.queue.addEventListener("click", e => {
-        const id = e.target.dataset.remove;
-        if (!id) return;
-        state.queue = state.queue.filter(x => x.id !== id);
-        renderQueue();
+      el.queue.querySelectorAll(".video-item").forEach(node => {
+        const item = state.queue.find(candidate => candidate.id === node.dataset.id);
+        node.querySelector(".item-title").addEventListener("input", event => item.title = event.target.value);
+        node.querySelector(".item-description").addEventListener("input", event => item.description = event.target.value);
+        node.querySelector(".item-privacy").addEventListener("change", event => item.privacy = event.target.value);
+        node.querySelector(".remove-btn").addEventListener("click", () => {
+          state.queue = state.queue.filter(candidate => candidate.id !== item.id);
+          renderQueue();
+        });
       });
     }
 
-    function initAuth() {
-      const clientId = el.clientId.value.trim();
-      if (!clientId) {
-        setStatus(el.authStatus, "請先填入 OAuth Client ID", "error");
-        return;
-      }
-
+    function applyDefaults() {
+      state.queue.forEach(item => {
+        item.title = el.defaultTitle.value.trim() || stripExt(item.file.name);
+        item.description = el.defaultDescription.value;
+        item.privacy = el.defaultPrivacy.value;
+      });
       saveSettings();
-
-      state.tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: SCOPE,
-        callback: (resp) => {
-          if (resp.error) {
-            setStatus(el.authStatus, "授權失敗：" + resp.error, "error");
-            return;
-          }
-          state.accessToken = resp.access_token;
-          setStatus(el.authStatus, "已成功連接 YouTube 上傳權限", "ok");
-        }
-      });
-
-      state.tokenClient.requestAccessToken({ prompt: "consent" });
+      renderQueue();
+      setStatus(el.uploadStatus, state.queue.length ? "已套用預設到全部影片" : "請先選擇影片");
     }
 
-    function revokeAuth() {
-      if (!state.accessToken) return;
-      google.accounts.oauth2.revoke(state.accessToken, () => {
-        state.accessToken = "";
-        setStatus(el.authStatus, "已取消授權");
-      });
+    function setOverallProgress(completedCount, activeProgress = 0) {
+      const total = state.queue.length || 1;
+      const percent = Math.min(100, Math.round(((completedCount + activeProgress / 100) / total) * 100));
+      el.progressBar.style.width = `${percent}%`;
+      el.progressPercent.textContent = `${percent}%`;
+      el.progressText.textContent = state.uploading ? `上傳中 ${completedCount}/${state.queue.length}` : (percent === 100 ? "全部完成" : "等待上傳");
     }
 
-    async function refreshToken() {
-      if (!state.tokenClient) throw new Error("尚未初始化授權");
-      await new Promise((resolve, reject) => {
-        state.tokenClient.callback = (resp) => {
-          if (resp.error) reject(new Error(resp.error));
-          else {
-            state.accessToken = resp.access_token;
-            resolve();
-          }
-        };
-        state.tokenClient.requestAccessToken({ prompt: "" });
-      });
-    }
-
-    async function authedFetch(url, options = {}, retry = true) {
-      const res = await fetch(url, {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          Authorization: `Bearer ${state.accessToken}`
-        }
-      });
-
-      if (res.status === 401 && retry) {
-        await refreshToken();
-        return authedFetch(url, options, false);
-      }
-      return res;
-    }
-
-    async function readError(res) {
-      try {
-        const data = await res.json();
-        return data.error?.message || JSON.stringify(data);
-      } catch {
-        return `${res.status} ${res.statusText}`;
-      }
-    }
-
-    async function createSession(item) {
+    async function startResumableSession(item) {
       const metadata = {
         snippet: {
-          title: item.title,
-          description: item.description
+          title: item.title.trim() || stripExt(item.file.name),
+          description: item.description,
+          categoryId: "22"
         },
-        status: {
-          privacyStatus: item.privacyStatus
-        }
+        status: { privacyStatus: item.privacy }
       };
 
-      const res = await authedFetch(
-        "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json; charset=UTF-8",
-            "X-Upload-Content-Length": String(item.file.size),
-            "X-Upload-Content-Type": item.file.type || "application/octet-stream"
-          },
-          body: JSON.stringify(metadata)
-        }
-      );
+      recordInsertAttempt(state.selectedClientId);
 
-      if (!res.ok) throw new Error(await readError(res));
+      const response = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${state.accessToken}`,
+          "Content-Type": "application/json; charset=UTF-8",
+          "X-Upload-Content-Length": String(item.file.size),
+          "X-Upload-Content-Type": item.file.type || "application/octet-stream"
+        },
+        body: JSON.stringify(metadata)
+      });
 
-      const location = res.headers.get("Location");
-      if (!location) throw new Error("找不到上傳工作階段網址");
-      return location;
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        const message = errorBody?.error?.message || `建立上傳工作失敗（HTTP ${response.status}）`;
+        if (response.status === 401) state.accessToken = "";
+        throw new Error(message);
+      }
+
+      const uploadUrl = response.headers.get("Location");
+      if (!uploadUrl) throw new Error("YouTube 未回傳續傳網址，請確認 OAuth 來源設定");
+      return uploadUrl;
     }
 
-    async function uploadBinary(uploadUrl, item) {
+    function uploadFileToSession(uploadUrl, item, completedCount) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadUrl, true);
-        xhr.setRequestHeader("Authorization", `Bearer ${state.accessToken}`);
+        xhr.open("PUT", uploadUrl);
         xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
 
-        xhr.upload.onprogress = e => {
-          if (!e.lengthComputable) return;
-          item.progress = Math.round((e.loaded / e.total) * 100);
-          item.status = "上傳中";
-          renderQueue();
-        };
+        xhr.upload.addEventListener("progress", event => {
+          if (!event.lengthComputable) return;
+          item.progress = Math.round((event.loaded / event.total) * 100);
+          setOverallProgress(completedCount, item.progress);
+          setStatus(el.uploadStatus, `正在上傳：${item.title}（${item.progress}%）`);
+        });
 
-        xhr.onload = () => {
+        xhr.addEventListener("load", () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              const data = JSON.parse(xhr.responseText);
-              resolve(data);
+              resolve(JSON.parse(xhr.responseText));
             } catch {
-              reject(new Error("無法解析 YouTube 回傳資料"));
+              reject(new Error("上傳完成，但無法讀取 YouTube 回傳資料"));
             }
-          } else {
-            reject(new Error(xhr.responseText || `Upload failed: ${xhr.status}`));
+            return;
           }
-        };
-
-        xhr.onerror = () => reject(new Error("影片上傳失敗"));
+          let message = `影片上傳失敗（HTTP ${xhr.status}）`;
+          try { message = JSON.parse(xhr.responseText)?.error?.message || message; } catch {}
+          reject(new Error(message));
+        });
+        xhr.addEventListener("error", () => reject(new Error("網路中斷，影片上傳失敗")));
+        xhr.addEventListener("abort", () => reject(new Error("影片上傳已取消")));
         xhr.send(item.file);
       });
     }
 
+    async function uploadOne(item, completedCount) {
+      item.status = "建立上傳工作";
+      renderQueue();
+      const uploadUrl = await startResumableSession(item);
+      item.status = "上傳中";
+      renderQueue();
+      const video = await uploadFileToSession(uploadUrl, item, completedCount);
+      if (!video.id) throw new Error("YouTube 未回傳影片 ID");
+      return video;
+    }
+
+    function renderResults() {
+      if (!state.results.length) {
+        el.resultsBody.innerHTML = '<tr><td class="result-empty" colspan="4">上傳結果會顯示在這裡</td></tr>';
+        return;
+      }
+
+      el.resultsBody.innerHTML = state.results.map(result => `
+        <tr>
+          <td>${escapeHtml(result.title)}</td>
+          <td>${escapeHtml(result.originalFileName)}</td>
+          <td><span class="pill ${escapeHtml(result.type)}">${escapeHtml(result.status)}</span></td>
+          <td>${result.link ? `<a href="${escapeHtml(result.link)}" target="_blank" rel="noopener">${escapeHtml(result.link)}</a>` : "—"}</td>
+        </tr>`).join("");
+    }
+
     async function uploadAll() {
+      if (state.uploading) return;
       if (!state.accessToken) {
-        setStatus(el.uploadStatus, "請先完成 Google 授權", "error");
+        setStatus(el.uploadStatus, "請先在步驟 1 連接 Google OAuth", "error");
         return;
       }
       if (!state.queue.length) {
-        setStatus(el.uploadStatus, "請先加入影片", "error");
+        setStatus(el.uploadStatus, "請先選擇至少一支影片", "error");
+        return;
+      }
+      if (state.queue.some(item => !item.title.trim())) {
+        setStatus(el.uploadStatus, "每支影片都需要標題", "error");
         return;
       }
 
-      state.results = [];
-      renderResults();
-
-      let success = 0;
-
-      for (let i = 0; i < state.queue.length; i++) {
-        const item = state.queue[i];
-        item.progress = 0;
-        item.error = "";
-        item.status = "建立上傳工作階段";
-        renderQueue();
-
-        try {
-          setStatus(el.uploadStatus, `正在上傳第 ${i + 1} / ${state.queue.length} 支：${item.title}`);
-          const uploadUrl = await createSession(item);
-          const data = await uploadBinary(uploadUrl, item);
-
-          item.status = "已完成";
-          item.progress = 100;
-          item.videoId = data.id;
-          item.link = `https://youtu.be/${data.id}`;
-          success++;
-        } catch (err) {
-          item.status = "失敗";
-          item.error = err.message || String(err);
-        }
-
-        state.results.push({
-          title: item.title,
-          originalFileName: stripExt(item.file.name),
-          status: item.status,
-          link: item.link,
-          videoId: item.videoId
-        });
-
-        renderQueue();
-        renderResults();
+      const remaining = Math.max(0, DEFAULT_DAILY_INSERT_LIMIT - getClientUsage(state.selectedClientId));
+      if (state.queue.length > remaining) {
+        const proceed = confirm(`目前選擇 ${state.queue.length} 支，但這組專案預估只剩 ${remaining} 次上傳額度。仍要繼續嗎？`);
+        if (!proceed) return;
       }
 
-      setStatus(el.uploadStatus, `批次上傳完成。成功 ${success} 支，失敗 ${state.queue.length - success} 支。`);
+      state.uploading = true;
+      state.results = [];
+      el.uploadBtn.disabled = true;
+      el.applyDefaultsBtn.disabled = true;
+      el.fileInput.disabled = true;
+      renderQueue();
+      renderResults();
+      setOverallProgress(0, 0);
+
+      for (let index = 0; index < state.queue.length; index += 1) {
+        const item = state.queue[index];
+        try {
+          setStatus(el.uploadStatus, `準備上傳：${item.title}`);
+          const video = await uploadOne(item, index);
+          item.status = "上傳成功";
+          item.progress = 100;
+          state.results.push({
+            title: item.title,
+            originalFileName: stripExt(item.file.name),
+            status: "上傳成功",
+            type: "success",
+            link: `https://youtu.be/${video.id}`
+          });
+        } catch (error) {
+          item.status = "上傳失敗";
+          state.results.push({
+            title: item.title,
+            originalFileName: stripExt(item.file.name),
+            status: error.message,
+            type: "error",
+            link: ""
+          });
+          if (!state.accessToken) {
+            setStatus(el.authStatus, "授權已失效，請重新連接 Google OAuth", "error");
+          }
+        }
+        renderQueue();
+        renderResults();
+        setOverallProgress(index + 1, 0);
+      }
+
+      state.uploading = false;
+      el.uploadBtn.disabled = false;
+      el.applyDefaultsBtn.disabled = false;
+      el.fileInput.disabled = false;
+      renderQueue();
+
+      const successCount = state.results.filter(result => result.link).length;
+      const failureCount = state.results.length - successCount;
+      setStatus(
+        el.uploadStatus,
+        failureCount ? `完成：成功 ${successCount} 支，失敗 ${failureCount} 支` : `全部完成，共成功上傳 ${successCount} 支`,
+        failureCount ? "error" : "success"
+      );
+      renderOAuthCards();
     }
 
     async function copyResults() {
       const rows = state.results
-        .filter(x => x.link)
-        .map(x => `${x.title}\t${x.originalFileName || ""}\t${x.link}`);
+        .filter(result => result.link)
+        .map(result => `${result.title}\t${result.originalFileName}\t${result.link}`);
 
       if (!rows.length) {
-        setStatus(el.uploadStatus, "還沒有可複製的結果");
+        setStatus(el.uploadStatus, "目前沒有可複製的成功上傳結果", "error");
         return;
       }
 
       const text = rows.join("\n");
-      await navigator.clipboard.writeText(text);
-      setStatus(el.uploadStatus, "已複製影片名稱、原始檔案名稱、連結");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      setStatus(el.uploadStatus, `已複製 ${rows.length} 支影片資料；貼到 Excel 會分成三欄`, "success");
     }
 
-    el.videoInput.addEventListener("change", e => {
-      addFiles(e.target.files);
-      e.target.value = "";
-    });
-
-    el.dropzone.addEventListener("click", () => {
-      el.videoInput.click();
-    });
-
-    el.dropzone.addEventListener("dragover", e => {
-      e.preventDefault();
-      el.dropzone.classList.add("dragover");
-    });
-
-    el.dropzone.addEventListener("dragleave", () => {
-      el.dropzone.classList.remove("dragover");
-    });
-
-    el.dropzone.addEventListener("drop", e => {
-      e.preventDefault();
-      el.dropzone.classList.remove("dragover");
-      addFiles(e.dataTransfer.files);
-    });
-
-    el.applyDefaultsBtn.addEventListener("click", () => {
-      const presetTitle = el.defaultTitle.value.trim();
-      for (const item of state.queue) {
-        item.title = presetTitle || stripExt(item.file.name);
-        item.privacyStatus = el.defaultPrivacy.value;
-        item.description = el.defaultDescription.value.trim();
+    function resetSelectedQuota() {
+      const current = getClientUsage(state.selectedClientId);
+      const value = prompt("請輸入這組專案今天已使用的 videos.insert 次數：", String(current));
+      if (value === null) return;
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 0) {
+        setStatus(el.authStatus, "請輸入 0 以上的整數", "error");
+        return;
       }
-      renderQueue();
-    });
+      setClientUsage(state.selectedClientId, parsed);
+      setStatus(el.authStatus, `已把這組專案的今日用量校正為 ${parsed} 次`, "success");
+    }
 
-    el.clearBtn.addEventListener("click", () => {
-      state.queue = [];
-      renderQueue();
-    });
-
-    el.authBtn.addEventListener("click", initAuth);
-    el.revokeBtn.addEventListener("click", revokeAuth);
+    el.authorizeBtn.addEventListener("click", authorize);
+    el.resetQuotaBtn.addEventListener("click", resetSelectedQuota);
+    el.fileInput.addEventListener("change", event => addFiles(event.target.files));
+    el.applyDefaultsBtn.addEventListener("click", applyDefaults);
     el.uploadBtn.addEventListener("click", uploadAll);
     el.copyBtn.addEventListener("click", copyResults);
 
-    el.clientId.addEventListener("change", saveSettings);
-    el.defaultTitle.addEventListener("change", saveSettings);
+    [el.defaultTitle, el.defaultDescription].forEach(input => input.addEventListener("change", saveSettings));
     el.defaultPrivacy.addEventListener("change", saveSettings);
-    el.defaultDescription.addEventListener("change", saveSettings);
+
+    ["dragenter", "dragover"].forEach(eventName => {
+      el.dropZone.addEventListener(eventName, event => {
+        event.preventDefault();
+        el.dropZone.classList.add("dragover");
+      });
+    });
+
+    ["dragleave", "drop"].forEach(eventName => {
+      el.dropZone.addEventListener(eventName, event => {
+        event.preventDefault();
+        el.dropZone.classList.remove("dragover");
+      });
+    });
+
+    el.dropZone.addEventListener("drop", event => addFiles(event.dataTransfer.files));
 
     loadSettings();
-    bindQueueEvents();
+    renderOAuthCards();
     renderQueue();
     renderResults();
   </script>
