@@ -359,7 +359,12 @@
       background: rgba(255, 255, 255, .72);
       font-size: 12px;
       font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color .15s ease, color .15s ease, background .15s ease, transform .15s ease;
     }
+
+    .connected-channel:hover { transform: translateY(-1px); border-color: var(--green); }
 
     .connected-channel.success {
       color: var(--green-dark);
@@ -959,7 +964,7 @@
           <div class="status" id="authStatus" aria-live="polite">尚未授權</div>
           <div class="channel-row">
             <button class="btn btn-primary" id="authorizeBtn" type="button">連接 Google OAuth</button>
-            <div class="connected-channel" id="channelStatus" aria-live="polite">目前連結的 YouTube 頻道：尚未連結</div>
+            <a class="connected-channel" id="channelStatus" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" title="開啟 YouTube" aria-live="polite">目前連結的 YouTube 頻道：尚未連結</a>
           </div>
           <p class="fine-print" id="quotaResetText"></p>
           <p class="fine-print" id="quotaSyncStatus" aria-live="polite"></p>
@@ -1388,6 +1393,8 @@
       state.channelId = "";
       el.channelStatus.textContent = message;
       el.channelStatus.className = "connected-channel";
+      el.channelStatus.href = "https://www.youtube.com/";
+      el.channelStatus.title = "開啟 YouTube";
     }
 
     async function loadConnectedChannel() {
@@ -1413,11 +1420,19 @@
         state.channelId = channel.id || "";
         el.channelStatus.textContent = `目前連結的 YouTube 頻道：${state.channelName}`;
         el.channelStatus.className = "connected-channel success";
+        el.channelStatus.href = state.channelId
+          ? `https://studio.youtube.com/channel/${encodeURIComponent(state.channelId)}`
+          : "https://www.youtube.com/";
+        el.channelStatus.title = state.channelId
+          ? `開啟 ${state.channelName} 的 YouTube Studio`
+          : "開啟 YouTube";
       } catch (error) {
         state.channelName = "";
         state.channelId = "";
         el.channelStatus.textContent = `已授權，但無法讀取頻道名稱：${error.message}`;
         el.channelStatus.className = "connected-channel error";
+        el.channelStatus.href = "https://www.youtube.com/";
+        el.channelStatus.title = "開啟 YouTube";
       }
     }
 
