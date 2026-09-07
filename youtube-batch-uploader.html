@@ -1719,6 +1719,32 @@
       }
     }
 
+    function getResultStatusText(result) {
+      return result.type === "uploading"
+        ? `上傳中 ${Math.max(0, Math.min(100, Number(result.progress) || 0))}%`
+        : result.status;
+    }
+
+    function updateResultItemProgress(item) {
+      const result = state.results.find(candidate => candidate.id === item.id);
+      if (!result) return;
+
+      result.status = "上傳中";
+      result.type = "uploading";
+      result.progress = item.progress;
+      const row = Array.from(el.resultsBody.querySelectorAll("tr"))
+        .find(node => node.dataset.id === item.id);
+      const statusNode = row?.querySelector(".file-status");
+      if (statusNode) {
+        const label = getResultStatusText(result);
+        const progress = Math.max(0, Math.min(100, Number(result.progress) || 0));
+        statusNode.textContent = label;
+        statusNode.dataset.label = label;
+        statusNode.className = "file-status uploading";
+        statusNode.style.setProperty("--upload-progress", `${progress}%`);
+      }
+    }
+
     function renderQueue() {
       updateQueueSummary();
       updateSelectionActions();
@@ -1969,6 +1995,7 @@
           item.progress = Math.round((event.loaded / event.total) * 100);
           setOverallProgress(completedCount, item.progress);
           updateQueueItemProgress(item);
+          updateResultItemProgress(item);
           setStatus(el.uploadStatus, `正在上傳：${item.title}（${item.progress}%）`);
         });
 
@@ -1993,10 +2020,21 @@
 
     async function uploadOne(item, completedCount) {
       item.status = "建立上傳工作";
+      const result = state.results.find(candidate => candidate.id === item.id);
+      if (result) {
+        result.status = "建立上傳工作";
+        result.type = "";
+      }
       renderQueue();
+      renderResults();
       const uploadUrl = await startResumableSession(item);
       item.status = "上傳中";
+      if (result) {
+        result.status = "上傳中";
+        result.type = "uploading";
+      }
       renderQueue();
+      renderResults();
       const video = await uploadFileToSession(uploadUrl, item, completedCount);
       if (!video.id) throw new Error("YouTube 未回傳影片 ID");
       return video;
@@ -2008,13 +2046,18 @@
         return;
       }
 
-      el.resultsBody.innerHTML = state.results.map(result => `
-        <tr>
+      el.resultsBody.innerHTML = state.results.map(result => {
+        const label = getResultStatusText(result);
+        const statusClass = result.type ? ` ${result.type}` : "";
+        const progress = Math.max(0, Math.min(100, Number(result.progress) || 0));
+        return `
+        <tr data-id="${escapeHtml(result.id)}">
           <td>${escapeHtml(result.title)}</td>
           <td>${escapeHtml(result.originalFileName)}</td>
-          <td><span class="pill ${escapeHtml(result.type)}">${escapeHtml(result.status)}</span></td>
+          <td><span class="file-status${escapeHtml(statusClass)}" data-label="${escapeHtml(label)}" style="--upload-progress:${progress}%" title="${escapeHtml(result.errorMessage || "")}">${escapeHtml(label)}</span></td>
           <td>${result.link ? `<a href="${escapeHtml(result.link)}" target="_blank" rel="noopener">${escapeHtml(result.link)}</a>` : "—"}</td>
-        </tr>`).join("");
+        </tr>`;
+      }).join("");
     }
 
     async function uploadAll() {
@@ -2039,7 +2082,16 @@
       }
 
       state.uploading = true;
-      state.results = [];
+      state.results = state.queue.map(item => ({
+        id: item.id,
+        title: item.title,
+        originalFileName: stripExt(item.file.name),
+        status: "等待上傳",
+        type: "",
+        progress: 0,
+        errorMessage: "",
+        link: ""
+      }));
       el.uploadBtn.disabled = true;
       el.applyDefaultsBtn.disabled = true;
       el.clearQueueBtn.disabled = true;
@@ -2055,20 +2107,19 @@
           const video = await uploadOne(item, index);
           item.status = "上傳成功";
           item.progress = 100;
-          state.results.push({
-            title: item.title,
-            originalFileName: stripExt(item.file.name),
+          Object.assign(state.results[index], {
             status: "上傳成功",
             type: "success",
+            progress: 100,
+            errorMessage: "",
             link: `https://youtu.be/${video.id}`
           });
         } catch (error) {
           item.status = "上傳失敗";
-          state.results.push({
-            title: item.title,
-            originalFileName: stripExt(item.file.name),
-            status: error.message,
+          Object.assign(state.results[index], {
+            status: "上傳失敗",
             type: "error",
+            errorMessage: error.message,
             link: ""
           });
           if (!state.accessToken) {
