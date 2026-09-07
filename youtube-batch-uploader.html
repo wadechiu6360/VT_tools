@@ -823,33 +823,13 @@
     }
 
     .overall-progress {
-      flex: 1;
-      max-width: 480px;
+      flex: 0 0 auto;
     }
 
-    .progress-label {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 7px;
-      color: var(--muted);
+    .overall-progress .file-status {
+      width: 118px;
+      min-height: 34px;
       font-size: 12px;
-    }
-
-    .progress-track {
-      width: 100%;
-      height: 9px;
-      overflow: hidden;
-      border-radius: 999px;
-      background: #ffe8e1;
-    }
-
-    .progress-bar {
-      width: 0;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--green-dark), #f27961);
-      transition: width .25s ease;
     }
 
     .table-wrap { overflow-x: auto; }
@@ -1025,8 +1005,7 @@
 
       <div class="upload-actions">
         <div class="overall-progress">
-          <div class="progress-label"><span id="progressText">等待上傳</span><strong id="progressPercent">0%</strong></div>
-          <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+          <span class="file-status" id="progressText" data-label="等待上傳" style="--upload-progress:0%">等待上傳</span>
         </div>
         <div class="button-row">
           <button class="btn btn-dark" id="uploadBtn" type="button">開始批次上傳</button>
@@ -1117,8 +1096,6 @@
       copyBtn: document.getElementById("copyBtn"),
       uploadStatus: document.getElementById("uploadStatus"),
       progressText: document.getElementById("progressText"),
-      progressPercent: document.getElementById("progressPercent"),
-      progressBar: document.getElementById("progressBar"),
       resultsBody: document.getElementById("resultsBody")
     };
 
@@ -1916,9 +1893,13 @@
     function setOverallProgress(completedCount, activeProgress = 0) {
       const total = state.queue.length || 1;
       const percent = Math.min(100, Math.round(((completedCount + activeProgress / 100) / total) * 100));
-      el.progressBar.style.width = `${percent}%`;
-      el.progressPercent.textContent = `${percent}%`;
-      el.progressText.textContent = state.uploading ? `上傳中 ${completedCount}/${state.queue.length}` : (percent === 100 ? "全部完成" : "等待上傳");
+      const label = state.uploading
+        ? `上傳中 ${percent}%`
+        : (percent === 100 ? "上傳完成 100%" : "等待上傳");
+      el.progressText.textContent = label;
+      el.progressText.dataset.label = label;
+      el.progressText.className = `file-status${state.uploading ? " uploading" : percent === 100 ? " success" : ""}`;
+      el.progressText.style.setProperty("--upload-progress", `${percent}%`);
     }
 
     async function startResumableSession(item) {
@@ -2080,6 +2061,7 @@
       }
 
       state.uploading = false;
+      setOverallProgress(state.queue.length, 0);
       el.uploadBtn.disabled = false;
       el.fileInput.disabled = false;
       renderQueue();
