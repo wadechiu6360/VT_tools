@@ -1476,7 +1476,12 @@
         },
         error_callback: error => {
           clearConnectedChannel();
-          setStatus(el.authStatus, `授權視窗錯誤：${error.type || "請重試"}`, "error");
+          const messages = {
+            popup_failed_to_open: "無法開啟 Google 授權視窗，請允許這個網站使用彈出式視窗",
+            popup_closed: "Google 尚未完成授權就關閉視窗；請改用 Chrome 或 Edge 開啟網站，並確認帳號已加入 OAuth 測試使用者",
+            unknown: "Google 授權視窗發生未知錯誤，請重新整理後再試"
+          };
+          setStatus(el.authStatus, messages[error.type] || `授權視窗錯誤：${error.type || "請重試"}`, "error");
         }
       });
     }
@@ -1485,7 +1490,7 @@
       try {
         initTokenClient();
         clearConnectedChannel("正在等待 Google 帳號授權…");
-        state.tokenClient.requestAccessToken({ prompt: "select_account consent" });
+        state.tokenClient.requestAccessToken({ prompt: "select_account" });
         setStatus(el.authStatus, "正在等待 Google 帳號授權…");
       } catch (error) {
         setStatus(el.authStatus, error.message, "error");
