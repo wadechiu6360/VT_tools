@@ -945,7 +945,7 @@
   <main class="page">
     <header class="hero">
       <div>
-        <p class="eyebrow">YouTube 批次上傳工具：一次選好，一次上傳</p>
+        <p class="eyebrow">YouTube 批次上傳工具：一次選好，一次上傳 <span class="app-version">(版本：11.18.1)</span></p>
         <h1>YouTube Batch Publisher</h1>
       </div>
       <p class="hero-note">批次設定影片資訊、切換 API 專案，完成後直接複製影片名稱、原始檔案名稱與連結到 Excel。</p>
@@ -1054,6 +1054,9 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     "use strict";
+
+    // 版本格式：更新日期（月.日）.當日第幾次更新，例如 11.18.1。
+    const APP_VERSION = "11.18.1";
 
     const CLIENTS = [
       {
